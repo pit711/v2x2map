@@ -6,10 +6,20 @@ Plug a $20 ESP32-C5 dev board into your phone, drive somewhere with modern infra
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
+<table>
+<tr>
+<td><img src="docs/screenshot-dashboard.png" alt="Python bridge dashboard — live OSM map + frame log" width="480"/></td>
+<td><img src="docs/screenshot-android.png" alt="Android app" width="220"/></td>
+</tr>
+<tr>
+<td align="center"><em>Python bridge — live OSM map + frame log</em></td>
+<td align="center"><em>Android app</em></td>
+</tr>
+</table>
+
 ## Acknowledgements
 
 Big thanks to the team behind [**opentrafficmap/its-g5-receiver-firmware**](https://codeberg.org/opentrafficmap/its-g5-receiver-firmware) on Codeberg — without their foundational work this project would not exist. V2X2MAP is a fork of their firmware adapted for the Waveshare ESP32-C5-WIFI6-KIT devboard, extended with BLE streaming, the Android app, and the Windows installer.
-
 
 ---
 
@@ -32,10 +42,13 @@ One **Waveshare ESP32-C5-WIFI6-KIT** dev board and any Android phone with USB-OT
 
 The board supports 5.9 GHz IEEE 802.11p out of the box; the firmware drives it as a sniffer and forwards captured frames to your phone.
 
+<img src="docs/hardware.jpg" alt="Waveshare ESP32-C5-WIFI6-KIT dev board" width="340"/>
+
 - **Amazon:** [Waveshare ESP32-C5-WROOM-1 dev board](https://www.amazon.de/dp/B0GXVKM7PH?***REMOVED***) *
 - **AliExpress:** [Waveshare Official Store](https://s.click.aliexpress.com/e/_c3pGqqLN) *
+
 ---
-  
+
 ## Features
 
 | Feature | Description |
@@ -82,14 +95,23 @@ The board supports 5.9 GHz IEEE 802.11p out of the box; the firmware drives it a
 2. Connect the ESP32-C5 via USB
 3. Run the EXE and follow three steps:
 
-**Step 1 — Select the COM port**
-The installer detects the board automatically. Pick the right port and click *Weiter*.
-
-**Step 2 — Flash the firmware**
-The installer writes bootloader, partition table and application to the C5. Takes 30–60 seconds.
-
-**Step 3 — Set the Node-ID and launch**
-The installer reads the MAC from the chip and pre-fills the Node-ID used as the MQTT topic. Hit *Fertig – Bridge starten* to launch the Python bridge and open the live dashboard.
+<table>
+<tr>
+<td align="center"><strong>Step 1 — Select COM port</strong></td>
+<td align="center"><strong>Step 2 — Flash firmware</strong></td>
+<td align="center"><strong>Step 3 — Set Node-ID</strong></td>
+</tr>
+<tr>
+<td><img src="docs/installer-1-port.png"   alt="Installer step 1: select COM port"   width="260"/></td>
+<td><img src="docs/installer-2-flash.jpg"  alt="Installer step 2: flash firmware"    width="260"/></td>
+<td><img src="docs/installer-3-nodeid.png" alt="Installer step 3: set Node-ID"       width="260"/></td>
+</tr>
+<tr>
+<td>The installer detects the board automatically. Pick the right port and click <em>Weiter</em>.</td>
+<td>The installer writes bootloader, partition table and application to the C5. Takes 30–60 seconds.</td>
+<td>The installer reads the MAC from the chip and pre-fills the Node-ID. Hit <em>Fertig – Bridge starten</em>.</td>
+</tr>
+</table>
 
 ---
 
@@ -142,7 +164,4 @@ Receiving and forwarding ITS-G5 radio data may be subject to national telecommun
 
 Code is published under the **MIT License** — see [`LICENSE`](LICENSE).
 
-*affiliate link (no extra cost for you)
----
-
-
+\* affiliate link (no extra cost for you)

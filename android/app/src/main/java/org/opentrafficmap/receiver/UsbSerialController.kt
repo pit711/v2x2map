@@ -9,6 +9,8 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.util.Log
+import com.hoho.android.usbserial.driver.CdcAcmSerialDriver
+import com.hoho.android.usbserial.driver.ProbeTable
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
@@ -58,9 +60,9 @@ class UsbSerialController(
     }
 
     fun start() {
-        val devices = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
+        val devices = findDrivers()
         if (devices.isEmpty()) {
-            onState(State.ERROR, "no USB serial device found")
+            onState(State.ERROR, "kein USB-Gerät gefunden – OTG-Kabel angeschlossen?")
             return
         }
         val driver = devices.first()
@@ -82,6 +84,25 @@ class UsbSerialController(
             )
             usbManager.requestPermission(device, pi)
         }
+    }
+
+    /**
+     * Returns all detected serial drivers: default prober (FTDI, CP210x, CH34x, …) PLUS
+     * Espressif USB-Serial-JTAG devices that are missing from the stock probe table.
+     * ESP32-C3/C5/S3/C6/H2 all use VID=0x303A; PID varies:
+     *   0x1001  USB JTAG/serial (C3, C5, S3, C6, H2)
+     *   0x0002  ESP32-S2 USB CDC
+     *   0x8001  USB CDC-only build
+     */
+    private fun findDrivers(): List<UsbSerialDriver> {
+        val defaultHits = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)
+        if (defaultHits.isNotEmpty()) return defaultHits
+        val espressifTable = ProbeTable().apply {
+            addProduct(0x303A, 0x1001, CdcAcmSerialDriver::class.java)
+            addProduct(0x303A, 0x0002, CdcAcmSerialDriver::class.java)
+            addProduct(0x303A, 0x8001, CdcAcmSerialDriver::class.java)
+        }
+        return UsbSerialProber(espressifTable).findAllDrivers(usbManager)
     }
 
     private fun openDevice(device: UsbDevice, drv: UsbSerialDriver? = null) {
