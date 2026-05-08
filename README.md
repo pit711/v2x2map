@@ -8,12 +8,14 @@ Plug a $20 ESP32-C5 dev board into your phone, drive somewhere with modern infra
 
 <table>
 <tr>
-<td><img src="docs/screenshot-dashboard.png" alt="Python bridge dashboard — live OSM map + frame log" width="480"/></td>
-<td><img src="docs/screenshot-android.png" alt="Android app" width="220"/></td>
+<td><img src="docs/screenshot-dashboard.png" alt="Python bridge dashboard — live OSM map + frame log" width="420"/></td>
+<td><img src="docs/android-live.png"         alt="Android app — live frames rolling in"              width="200"/></td>
+<td><img src="docs/android-map.png"          alt="Android app — map view"                            width="200"/></td>
 </tr>
 <tr>
-<td align="center"><em>Python bridge — live OSM map + frame log</em></td>
-<td align="center"><em>Android app</em></td>
+<td align="center"><em>Python bridge dashboard</em></td>
+<td align="center"><em>Android — live data</em></td>
+<td align="center"><em>Android — map</em></td>
 </tr>
 </table>
 
