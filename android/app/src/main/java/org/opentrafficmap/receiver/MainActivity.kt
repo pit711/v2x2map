@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -56,6 +57,9 @@ class MainActivity : AppCompatActivity() {
     ) { result ->
         if (result.values.all { it }) startBt() else binding.btStatus.text = "BT: permission denied"
     }
+    private val notifPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* granted or not — service starts regardless */ startReceiverService() }
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -128,7 +132,7 @@ class MainActivity : AppCompatActivity() {
         binding.map.overlays.add(locationOverlay)
 
         // --- Frame log ---
-        adapter = FrameLogAdapter()
+        adapter = FrameLogAdapter { f -> FrameDetailSheet.show(this, f) }
         binding.log.layoutManager = LinearLayoutManager(this)
         binding.log.adapter = adapter
 
@@ -174,6 +178,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopService(Intent(this, ReceiverForegroundService::class.java))
         usb?.stop()
         bt?.stop()
         mqtt?.stop()
@@ -214,10 +219,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // --------------------------------------------------- Foreground service
+
+    private fun ensureServiceRunning() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            startReceiverService()
+        }
+    }
+
+    private fun startReceiverService() {
+        val intent = Intent(this, ReceiverForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
+        else startService(intent)
+    }
+
     // -------------------------------------------------------------- USB
 
     private fun toggleUsb() {
         if (usb == null) {
+            ensureServiceRunning()
             usb = UsbSerialController(this, ::onSerialBytes, ::onUsbState).also { it.start() }
             binding.btnConnect.text = getString(R.string.disconnect)
         } else {
@@ -229,11 +254,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun onUsbState(state: UsbSerialController.State, info: String?) = runOnUiThread {
         binding.usbStatus.text = when (state) {
-            UsbSerialController.State.IDLE -> getString(R.string.status_disconnected)
+            UsbSerialController.State.IDLE       -> getString(R.string.status_disconnected)
             UsbSerialController.State.REQUESTING -> info ?: "USB: requesting…"
-            UsbSerialController.State.CONNECTED -> getString(R.string.status_connected, info ?: "ok")
-            UsbSerialController.State.ERROR -> "USB error: ${info ?: "?"}"
+            UsbSerialController.State.CONNECTED  -> getString(R.string.status_connected, info ?: "ok")
+            UsbSerialController.State.ERROR      -> "USB error: ${info ?: "?"}"
         }
+        binding.dotUsb.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            when (state) {
+                UsbSerialController.State.IDLE       -> 0xFF9E9E9E.toInt()
+                UsbSerialController.State.REQUESTING -> 0xFFFF9800.toInt()
+                UsbSerialController.State.CONNECTED  -> 0xFF4CAF50.toInt()
+                UsbSerialController.State.ERROR      -> 0xFFF44336.toInt()
+            }
+        )
     }
 
     // --------------------------------------------------------------- BT
@@ -254,6 +287,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startBt() {
+        ensureServiceRunning()
         bt = BluetoothController(
             context  = this,
             onBytes  = ::onSerialBytes,
@@ -271,12 +305,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun onBtState(state: BluetoothController.State, info: String?) = runOnUiThread {
         binding.btStatus.text = when (state) {
-            BluetoothController.State.IDLE -> getString(R.string.bt_status_disconnected)
-            BluetoothController.State.SCANNING -> info ?: "BT: scan…"
+            BluetoothController.State.IDLE       -> getString(R.string.bt_status_disconnected)
+            BluetoothController.State.SCANNING   -> info ?: "BT: scan…"
             BluetoothController.State.CONNECTING -> info ?: "BT: connect…"
-            BluetoothController.State.CONNECTED -> getString(R.string.bt_status_connected, info ?: "ok")
-            BluetoothController.State.ERROR -> "BT error: ${info ?: "?"}"
+            BluetoothController.State.CONNECTED  -> getString(R.string.bt_status_connected, info ?: "ok")
+            BluetoothController.State.ERROR      -> "BT error: ${info ?: "?"}"
         }
+        binding.dotBt.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            when (state) {
+                BluetoothController.State.IDLE       -> 0xFF9E9E9E.toInt()
+                BluetoothController.State.SCANNING,
+                BluetoothController.State.CONNECTING -> 0xFFFF9800.toInt()
+                BluetoothController.State.CONNECTED  -> 0xFF4CAF50.toInt()
+                BluetoothController.State.ERROR      -> 0xFFF44336.toInt()
+            }
+        )
     }
 
     // ---------------------------------------------------------- Location

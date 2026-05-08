@@ -34,18 +34,45 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical">
-            <TextView
-                android:id="@+id/usbStatus"
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/status_disconnected"
-                android:textSize="12sp"/>
-            <TextView
-                android:id="@+id/btStatus"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <View
+                    android:id="@+id/dotUsb"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="5dp"
+                    android:background="@drawable/ic_status_dot"/>
+                <TextView
+                    android:id="@+id/usbStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/status_disconnected"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/bt_status_disconnected"
-                android:textSize="12sp"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <View
+                    android:id="@+id/dotBt"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="5dp"
+                    android:background="@drawable/ic_status_dot"/>
+                <TextView
+                    android:id="@+id/btStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bt_status_disconnected"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+
         </LinearLayout>
 
         <TextView

@@ -119,6 +119,24 @@
                 style="@style/Section.Header"
                 android:text="@string/map_section"/>
 
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:hint="@string/marker_ttl_label">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edMarkerTtl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:maxLength="6"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                style="@style/Section.Hint"
+                android:text="@string/marker_ttl_hint"/>
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDownloadMap"
                 style="@style/Widget.Material3.Button.TonalButton"

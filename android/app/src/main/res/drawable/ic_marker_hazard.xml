@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="26dp"
+    android:height="24dp"
+    android:viewportWidth="26"
+    android:viewportHeight="24">
+    <!-- Warning triangle with exclamation mark for DENM.
+         evenOdd cuts the "!" out of the filled triangle. -->
+    <path
+        android:fillColor="#FF000000"
+        android:tint="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="
+            M13,1 L25,23 L1,23 Z
+            M11.8,8 L14.2,8 L13.7,17 L12.3,17 Z
+            M13,18.5 A1.3,1.3 0 1,0 13.001,18.5 Z"/>
+</vector>

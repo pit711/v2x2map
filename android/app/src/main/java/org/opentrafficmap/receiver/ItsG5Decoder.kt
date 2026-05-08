@@ -82,9 +82,23 @@ object ItsG5Decoder {
             val stationId = ((gnAddrHi.toLong() and 0xFFFFFFFFL) shl 32) or
                             (gnAddrLo.toLong() and 0xFFFFFFFFL)
 
-            val latRaw = readBeI32(p, srcPosOff + 12)
-            val lonRaw = readBeI32(p, srcPosOff + 16)
-            val pshRaw = readBeI32(p, srcPosOff + 20)
+            // Standard LPV layout: GN_ADDR(8) + TST(4) + LAT(4) + LON(4) + PAI|SPD(2) + HDG(2)
+            // Some RSU implementations use an 8-byte TAI timestamp instead of the standard 4-byte,
+            // shifting lat/lon 4 bytes later. If the standard offsets produce an impossible
+            // coordinate (|lat|>90), try the shifted offsets before giving up.
+            var latRaw = readBeI32(p, srcPosOff + 12)
+            var lonRaw = readBeI32(p, srcPosOff + 16)
+            var pshOff = srcPosOff + 20
+            if ((latRaw / 1e7) !in -90.0..90.0 && p.size >= srcPosOff + 28) {
+                val latShifted = readBeI32(p, srcPosOff + 16)
+                val lonShifted = readBeI32(p, srcPosOff + 20)
+                if ((latShifted / 1e7) in -90.0..90.0 && (lonShifted / 1e7) in -180.0..180.0) {
+                    latRaw = latShifted
+                    lonRaw = lonShifted
+                    pshOff = srcPosOff + 24
+                }
+            }
+            val pshRaw = readBeI32(p, pshOff)
             // top bit = position-accuracy-indicator, bits 1..15 = speed (signed 0.01 m/s),
             // bits 16..31 = heading (unsigned 0.1 deg).
             val speedRaw   = (pshRaw shr 16) and 0x7FFF

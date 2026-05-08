@@ -10,7 +10,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class FrameLogAdapter : RecyclerView.Adapter<FrameLogAdapter.VH>() {
+class FrameLogAdapter(
+    private val onItemClick: (Frame) -> Unit = {}
+) : RecyclerView.Adapter<FrameLogAdapter.VH>() {
 
     private val items = ArrayDeque<Frame>()
     private val fmt = SimpleDateFormat("HH:mm:ss", Locale.US)
@@ -31,6 +33,7 @@ class FrameLogAdapter : RecyclerView.Adapter<FrameLogAdapter.VH>() {
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val f = items[position]
+        holder.itemView.setOnClickListener { onItemClick(f) }
         holder.time.text = fmt.format(Date())
         holder.len.text = f.len.toString()
         holder.hex.text = f.hexPreview()

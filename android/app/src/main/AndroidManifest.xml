@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"
+                     tools:targetApi="34"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
+                     tools:targetApi="33"/>
 
     <!-- Legacy BT (Android 6–11) -->
     <uses-permission android:name="android.permission.BLUETOOTH"
@@ -53,6 +58,12 @@
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/usb_device_filter"/>
         </activity>
+
+        <service
+            android:name=".ReceiverForegroundService"
+            android:foregroundServiceType="connectedDevice"
+            android:exported="false"
+            tools:targetApi="34"/>
 
         <activity
             android:name=".SettingsActivity"

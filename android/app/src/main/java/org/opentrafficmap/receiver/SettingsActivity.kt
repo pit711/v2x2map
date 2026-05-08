@@ -59,6 +59,9 @@ class SettingsActivity : AppCompatActivity() {
             renderRecordingState()
         }
 
+        // --- Marker / path TTL -----------------------------------------------
+        binding.edMarkerTtl.setText(Prefs.markerTtlMinutes(this).toString())
+
         // --- Map prefetch ----------------------------------------------------
         binding.btnDownloadMap.setOnClickListener {
             SettingsBus.downloadVisibleMap()
@@ -89,10 +92,10 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Persist any in-flight edits (broker / node-id) without requiring the
-        // user to re-toggle the MQTT switch.
         Prefs.setMqttBroker(this, binding.edBrokerUrl.text.toString().trim())
         Prefs.setNodeId(this, binding.edNodeId.text.toString().trim())
+        binding.edMarkerTtl.text.toString().trim().toIntOrNull()
+            ?.let { Prefs.setMarkerTtlMinutes(this, it) }
     }
 
     private fun renderRecordingState() {

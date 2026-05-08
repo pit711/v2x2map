@@ -38,6 +38,8 @@
     <string name="rec_stopped">Recording stopped (%1$d frames, %2$s)</string>
 
     <string name="map_section">Map</string>
+    <string name="marker_ttl_label">Objects and paths visible (minutes)</string>
+    <string name="marker_ttl_hint">1 – 999999 min. Default 5. All markers and vehicle paths are removed after this time.</string>
     <string name="dl_map">Pre-download visible area</string>
     <string name="map_dl_started">Map download starting…</string>
     <string name="map_dl_done">Map download finished</string>

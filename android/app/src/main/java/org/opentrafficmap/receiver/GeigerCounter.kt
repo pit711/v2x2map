@@ -35,7 +35,7 @@ class GeigerCounter(private val context: Context) {
     fun start() {
         if (tone != null) return
         try {
-            tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 60)
+            tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
         } catch (_: RuntimeException) {
             // ToneGenerator throws when audio focus / output is not available.
             tone = null
