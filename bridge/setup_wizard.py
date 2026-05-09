@@ -19,7 +19,6 @@ from __future__ import annotations
 import io
 import os
 import re
-import subprocess
 import sys
 import threading
 import time
@@ -229,56 +228,55 @@ class SetupWizard:
 
     def _scan_wifi(self):
         if self._busy: return
+        port = self._selected_port()
+        if not port:
+            messagebox.showerror("Error", "Select a COM port first — the device scans for you.")
+            return
         self.scan_btn.configure(state="disabled")
-        self.scan_status.configure(text="Scanning…")
-        threading.Thread(target=self._scan_worker, daemon=True).start()
+        self.scan_status.configure(text="Asking device to scan (≈8 s)…")
+        threading.Thread(target=self._scan_worker, args=(port,), daemon=True).start()
 
-    def _scan_worker(self):
+    def _scan_worker(self, port: str):
+        """Send SCAN to ESP32-C5 via USB, read SCAN_AP lines, then SCAN_DONE."""
         networks: list[str] = []
         error_msg = ""
         try:
-            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-            # shell=True avoids FileNotFoundError on some Windows setups;
-            # encoding latin-1 handles non-UTF-8 netsh output (German locale)
-            result = subprocess.run(
-                "netsh wlan show networks",
-                shell=True, capture_output=True, timeout=12,
-                creationflags=flags,
-            )
-            out = (result.stdout or b"").decode("latin-1", errors="replace")
-            err = (result.stderr or b"").decode("latin-1", errors="replace")
+            ser = serial.Serial(port, 115200, timeout=1.0)
+            ser.dtr = False; ser.rts = False
+            time.sleep(0.3)
+            ser.reset_input_buffer()
 
+            ser.write(b"SCAN\n")
+
+            # Wait up to 30 s for SCAN_DONE
+            deadline = time.time() + 30
             seen: set[str] = set()
-            for line in out.splitlines():
-                # "SSID 1 : MyNet" or "SSID 1: MyNet" in any locale/spacing
-                m = re.match(r"^\s*SSID\s+\d+\s*[:：]\s*(.+)$", line)
-                if m:
-                    ssid = m.group(1).strip()
+            started = False
+            while time.time() < deadline:
+                raw = ser.readline()
+                if not raw:
+                    continue
+                line = raw.decode("utf-8", errors="replace").strip()
+                if line == "SCAN_START":
+                    started = True
+                elif line.startswith("SCAN_AP:") and started:
+                    # Format: SCAN_AP:ssid,authmode
+                    payload = line[8:]
+                    ssid = payload.rsplit(",", 1)[0].strip()
                     if ssid and ssid not in seen:
                         seen.add(ssid)
                         networks.append(ssid)
+                elif line == "SCAN_DONE":
+                    break
+            else:
+                error_msg = "Timeout — no SCAN_DONE received"
 
-            if not networks:
-                # Show first 3 lines of output to help diagnose
-                preview = "\n".join((out + err).splitlines()[:3])
-                error_msg = f"No SSIDs found.\n{preview}".strip()
+            ser.close()
         except Exception as e:
-            # Try nmcli (Linux/macOS)
-            try:
-                result2 = subprocess.run(
-                    ["nmcli", "-t", "-f", "SSID", "dev", "wifi", "list"],
-                    capture_output=True, text=True, timeout=12,
-                )
-                seen2: set[str] = set()
-                for line in result2.stdout.splitlines():
-                    ssid = line.strip()
-                    if ssid and ssid not in seen2:
-                        seen2.add(ssid)
-                        networks.append(ssid)
-                if not networks:
-                    error_msg = "No networks found via nmcli"
-            except Exception as e2:
-                error_msg = f"netsh: {e} / nmcli: {e2}"
+            error_msg = str(e)
+
+        if not networks and not error_msg:
+            error_msg = "No networks visible to the device"
 
         self.root.after(0, self._on_scan_done, networks, error_msg)
 

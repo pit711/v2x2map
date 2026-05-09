@@ -11,7 +11,9 @@
 #include "nvs.h"
 
 #include "config.h"
+#include "cmd_sniffer.h"
 #include "esp_system.h"
+#include "esp_wifi.h"
 #include "led.h"
 
 static const char TAG[] = "USB_STREAM";
@@ -106,6 +108,49 @@ static bool is_u32_key(const char *key)
     return !strcmp(key,"sniffms") || !strcmp(key,"wifims");
 }
 
+/* WiFi scan task — called from SCAN command */
+static void cfg_scan_task(void *arg)
+{
+    sniffer_pause();
+
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_start();
+
+    wifi_scan_config_t sc = {
+        .channel = 0, .show_hidden = false,
+        .scan_type = WIFI_SCAN_TYPE_ACTIVE,
+        .scan_time.active.min = 120,
+        .scan_time.active.max = 500,
+    };
+    esp_wifi_scan_start(&sc, true);   /* blocking */
+
+    uint16_t n = 0;
+    esp_wifi_scan_get_ap_num(&n);
+
+    wifi_ap_record_t *aps = NULL;
+    if (n > 0) {
+        aps = malloc(n * sizeof(*aps));
+        if (aps) esp_wifi_scan_get_ap_records(&n, aps);
+    }
+
+    for (uint16_t i = 0; i < n && aps; i++) {
+        char line[72];
+        int len = snprintf(line, sizeof(line), "SCAN_AP:%s,%d\n",
+                           (char *)aps[i].ssid, aps[i].authmode);
+        if (len > 0)
+            usb_serial_jtag_write_bytes((uint8_t *)line, len, pdMS_TO_TICKS(200));
+    }
+    free(aps);
+
+    usb_serial_jtag_write_bytes((uint8_t *)"SCAN_DONE\n", 10, pdMS_TO_TICKS(200));
+
+    esp_wifi_stop();
+    esp_wifi_set_mode(WIFI_MODE_NULL);
+    sniffer_resume();
+
+    vTaskDelete(NULL);
+}
+
 static void handle_cfg_command(char *line)
 {
     /* Reboot command */
@@ -113,6 +158,13 @@ static void handle_cfg_command(char *line)
         cfg_reply("REBOOT_OK\n");
         vTaskDelay(pdMS_TO_TICKS(150));
         esp_restart();
+        return;
+    }
+
+    /* WiFi scan via device radio */
+    if (strcmp(line, "SCAN") == 0) {
+        cfg_reply("SCAN_START\n");
+        xTaskCreate(cfg_scan_task, "cfg_scan", 4096, NULL, 3, NULL);
         return;
     }
 
