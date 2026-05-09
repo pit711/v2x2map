@@ -40,6 +40,13 @@ class SettingsActivity : AppCompatActivity() {
             SettingsBus.audioChanged(c)
         }
 
+        // --- SPATEM traffic light -------------------------------------------
+        binding.swSpatLight.isChecked = Prefs.spatLightEnabled(this)
+        binding.swSpatLight.setOnCheckedChangeListener { _, c ->
+            Prefs.setSpatLightEnabled(this, c)
+            SettingsBus.spatLightChanged(c)
+        }
+
         // --- MQTT ------------------------------------------------------------
         binding.edBrokerUrl.setText(Prefs.mqttBroker(this))
         binding.edNodeId.setText(Prefs.nodeId(this))

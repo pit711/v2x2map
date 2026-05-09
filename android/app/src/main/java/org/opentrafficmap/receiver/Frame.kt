@@ -15,6 +15,7 @@ data class Frame(
     val latLon: Pair<Double, Double>?,
     val headingDeg: Double?,
     val speedMps: Double?,
+    val spatPhase: SpatTemParser.Phase? = null,
 ) {
     val len: Int get() = payload.size
 

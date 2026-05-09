@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -51,6 +52,15 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var lastCycle: BluetoothController.CycleConfig? = null
     @Volatile private var lastSpeedMps: Float = 0f
     @Volatile private var followEnabled: Boolean = false
+    @Volatile private var spatLightEnabled: Boolean = true
+
+    // SPATEM RSU tracking: stationId → (lat, lon, phase, lastSeenMs)
+    private data class SpatRsu(
+        val lat: Double, val lon: Double,
+        val phase: SpatTemParser.Phase, val lastSeenMs: Long
+    )
+    private val spatRsus = mutableMapOf<Long, SpatRsu>()
+    private var lastLocation: Location? = null
 
     private val btPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -75,7 +85,9 @@ class MainActivity : AppCompatActivity() {
         override fun onLocationResult(result: LocationResult) {
             val loc = result.lastLocation ?: return
             lastSpeedMps = if (loc.hasSpeed()) loc.speed else 0f
+            lastLocation = loc
             if (followEnabled) followLocation(loc)
+            updateSpatLight(loc)
         }
     }
 
@@ -85,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         if (!Prefs.legalAccepted(this)) {
             showLegalDialog(); return
         }
+        spatLightEnabled = Prefs.spatLightEnabled(this)
         setupUi()
     }
 
@@ -210,6 +223,11 @@ class MainActivity : AppCompatActivity() {
         SettingsBus.onMapDownload = SettingsBus.OnMapDownload { downloadVisibleMap() }
         SettingsBus.onAudioChanged = SettingsBus.OnAudioChanged { on ->
             if (on) geiger.start() else geiger.stop()
+        }
+        SettingsBus.onSpatLightChanged = SettingsBus.OnSpatLightChanged { on ->
+            spatLightEnabled = on
+            if (!on) binding.spatLight.visibility = View.GONE
+            else lastLocation?.let { updateSpatLight(it) }
         }
         SettingsBus.onCycleApply = SettingsBus.OnCycleApply { c ->
             lastCycle = c
@@ -480,8 +498,57 @@ class MainActivity : AppCompatActivity() {
             mqtt?.publish(f.payload)
             if (recorder.isRecording) recorder.append(f)
             rateWindow.add(System.currentTimeMillis())
+
+            // Track SPATEM RSUs for traffic-light display
+            if (f.msgType == ItsG5Decoder.MsgType.SPATEM && f.latLon != null) {
+                val (lat, lon) = f.latLon
+                spatRsus[f.stationId ?: 0L] = SpatRsu(lat, lon,
+                    f.spatPhase ?: SpatTemParser.Phase.UNKNOWN, System.currentTimeMillis())
+                lastLocation?.let { updateSpatLight(it) }
+            }
         }
         binding.totalCounter.text = getString(R.string.stat_total, totalFrames.toInt())
+    }
+
+    private fun updateSpatLight(loc: Location) {
+        if (!spatLightEnabled) return
+        val now = System.currentTimeMillis()
+        spatRsus.entries.removeAll { now - it.value.lastSeenMs > 30_000 }
+
+        if (spatRsus.isEmpty()) { binding.spatLight.visibility = View.GONE; return }
+
+        val results = FloatArray(2)
+        val nearest = spatRsus.values.filter { rsu ->
+            Location.distanceBetween(loc.latitude, loc.longitude, rsu.lat, rsu.lon, results)
+            val dist = results[0]
+            if (dist > 400f) return@filter false
+            // Heading check: RSU must be roughly ahead (±70°) if we have a bearing
+            if (loc.hasBearing()) {
+                val bearingToRsu = results[1]
+                val diff = Math.abs(((loc.bearing - bearingToRsu + 180f + 360f) % 360f) - 180f)
+                diff < 70f
+            } else dist < 250f // no bearing → stricter distance threshold
+        }.minByOrNull { rsu ->
+            Location.distanceBetween(loc.latitude, loc.longitude, rsu.lat, rsu.lon, results)
+            results[0]
+        }
+
+        if (nearest == null) { binding.spatLight.visibility = View.GONE; return }
+
+        binding.spatLight.visibility = View.VISIBLE
+        applyPhaseColors(nearest.phase)
+    }
+
+    private fun applyPhaseColors(phase: SpatTemParser.Phase) {
+        val DIM = 0x33
+        fun tint(active: Boolean, r: Int, g: Int, b: Int): ColorStateList {
+            val alpha = if (active) 0xFF else DIM
+            val color = (alpha shl 24) or (r shl 16) or (g shl 8) or b
+            return ColorStateList.valueOf(color)
+        }
+        binding.lightRed.backgroundTintList    = tint(phase == SpatTemParser.Phase.RED,    0xCC, 0x22, 0x22)
+        binding.lightYellow.backgroundTintList = tint(phase == SpatTemParser.Phase.YELLOW, 0xCC, 0xAA, 0x00)
+        binding.lightGreen.backgroundTintList  = tint(phase == SpatTemParser.Phase.GREEN,  0x22, 0xCC, 0x22)
     }
 
     private val rateRefresh = object : Runnable {

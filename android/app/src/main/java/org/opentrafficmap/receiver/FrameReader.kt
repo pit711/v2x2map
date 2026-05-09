@@ -67,6 +67,7 @@ class FrameReader {
                 latLon     = d.latLon,
                 headingDeg = d.headingDeg,
                 speedMps   = d.speedMps,
+                spatPhase  = d.spatPhase,
             )
         }
     }

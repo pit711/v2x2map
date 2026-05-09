@@ -14,7 +14,8 @@ object SettingsBus {
     fun interface OnRecordingToggle { fun call(): String? }
     fun interface OnMapDownload   { fun call() }
     fun interface OnCycleApply    { fun call(c: BluetoothController.CycleConfig) }
-    fun interface OnAudioChanged  { fun call(enabled: Boolean) }
+    fun interface OnAudioChanged    { fun call(enabled: Boolean) }
+    fun interface OnSpatLightChanged { fun call(enabled: Boolean) }
 
     var onFollowChanged: OnFollowChanged? = null
     var onMqttToggle:    OnMqttToggle?    = null
@@ -22,6 +23,7 @@ object SettingsBus {
     var onMapDownload:   OnMapDownload?   = null
     var onCycleApply:    OnCycleApply?    = null
     var onAudioChanged:  OnAudioChanged?  = null
+    var onSpatLightChanged: OnSpatLightChanged? = null
 
     @Volatile var liveRecorder: FrameRecorder? = null
     @Volatile var liveBtController: BluetoothController? = null
@@ -35,6 +37,7 @@ object SettingsBus {
     fun downloadVisibleMap()             = onMapDownload?.call()
     fun applyCycle(c: BluetoothController.CycleConfig) = onCycleApply?.call(c)
     fun audioChanged(on: Boolean)        = onAudioChanged?.call(on)
+    fun spatLightChanged(on: Boolean)   = onSpatLightChanged?.call(on)
 
     fun recorder()        = liveRecorder
     fun btController()    = liveBtController

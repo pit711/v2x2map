@@ -132,15 +132,18 @@ object ItsG5Decoder {
             val dstPort = ((p[btpOff].toInt() and 0xFF) shl 8) or
                           (p[btpOff + 1].toInt() and 0xFF)
             val msgType = MsgType.fromBtpPort(dstPort)
+            val spatPhase = if (msgType == MsgType.SPATEM)
+                SpatTemParser.extractPhase(p, btpOff) else null
 
             return Decoded(
-                etherType = et,
-                msgType   = msgType,
-                stationId = stationId,
-                latLon    = latLon,
+                etherType  = et,
+                msgType    = msgType,
+                stationId  = stationId,
+                latLon     = latLon,
                 headingDeg = if (latLon != null && headingRaw != 0xFFFF) heading else null,
                 speedMps   = if (latLon != null) speed else null,
                 btpDstPort = dstPort,
+                spatPhase  = spatPhase,
             )
         }
         return Decoded(etherType = et)
@@ -178,6 +181,7 @@ object ItsG5Decoder {
         val headingDeg: Double? = null,
         val speedMps: Double? = null,
         val btpDstPort: Int? = null,
+        val spatPhase: SpatTemParser.Phase? = null,
     )
 
     /** ITS message type. Colors are M3-friendly tones the Marker drawables tint to. */

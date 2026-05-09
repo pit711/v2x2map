@@ -26,6 +26,7 @@
 #include "temperature.h"
 #include "usb_stream.h"
 #include "bt_stream.h"
+#include "wifi_manager.h"
 
 #if CONFIG_SNIFFER_STORE_HISTORY
 #define HISTORY_MOUNT_POINT "/data"
@@ -159,7 +160,11 @@ void app_main(void)
     register_ota_cmd();
 
     usb_stream_init();
+    usb_config_rx_start();   /* USB RX config channel for setup wizard */
     bt_stream_init();
+
+    /* Start WiFi manager if configured; BLE always available */
+    wifi_manager_init();     /* returns ESP_ERR_NOT_SUPPORTED for BLE-only */
 
     sniffer_autostart();
 

@@ -57,6 +57,21 @@
                 style="@style/Section.Hint"
                 android:text="@string/audio_hint"/>
 
+            <!-- SPATEM traffic light -->
+            <TextView
+                style="@style/Section.Header"
+                android:text="@string/spat_light_section"/>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/swSpatLight"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/spat_light_label"/>
+
+            <TextView
+                style="@style/Section.Hint"
+                android:text="@string/spat_light_hint"/>
+
             <!-- MQTT -->
             <TextView
                 style="@style/Section.Header"

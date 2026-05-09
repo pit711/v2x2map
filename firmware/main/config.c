@@ -67,6 +67,19 @@ static const config_key_t config_keys[] = {
     [CONFIG_INDEX_AUTOSTART_CHAN] = { "autostartchan",    NVS_TYPE_U32, 0,                           config_get_autostart_chan, NULL },
     [CONFIG_INDEX_BROADCAST_ONLY] = { "broadcastonly",    NVS_TYPE_U8,  0,                           config_get_broadcast_only, NULL },
     [CONFIG_INDEX_LED_BRIGHTNESS] = { "ledbrightness",    NVS_TYPE_U8,  0,                           config_get_led_brightness, NULL },
+    [CONFIG_INDEX_WIFI1_SSID]    = { "wifi1ssid",  NVS_TYPE_STR, CONFIG_WIFI_SSID_BUFFER_SIZE, NULL, NULL },
+    [CONFIG_INDEX_WIFI1_PASS]    = { "wifi1pass",  NVS_TYPE_STR, CONFIG_WIFI_PASS_BUFFER_SIZE, NULL, NULL },
+    [CONFIG_INDEX_WIFI2_SSID]    = { "wifi2ssid",  NVS_TYPE_STR, CONFIG_WIFI_SSID_BUFFER_SIZE, NULL, NULL },
+    [CONFIG_INDEX_WIFI2_PASS]    = { "wifi2pass",  NVS_TYPE_STR, CONFIG_WIFI_PASS_BUFFER_SIZE, NULL, NULL },
+    [CONFIG_INDEX_WIFI_OPEN]     = { "wifiopen",   NVS_TYPE_U8,  0,                            NULL, NULL },
+    [CONFIG_INDEX_CONN_MODE]     = { "connmode",   NVS_TYPE_U8,  0,                            NULL, NULL },
+    [CONFIG_INDEX_WIFI_IP]       = { "wifiip",     NVS_TYPE_STR, CONFIG_IPV4_BUFFER_SIZE,      NULL, NULL },
+    [CONFIG_INDEX_WIFI_NM]       = { "wifinm",     NVS_TYPE_STR, CONFIG_IPV4_BUFFER_SIZE,      NULL, NULL },
+    [CONFIG_INDEX_WIFI_GW]       = { "wifigw",     NVS_TYPE_STR, CONFIG_IPV4_BUFFER_SIZE,      NULL, NULL },
+    [CONFIG_INDEX_WIFI_DNS]      = { "wifidns",    NVS_TYPE_STR, CONFIG_IPV4_BUFFER_SIZE,      NULL, NULL },
+    [CONFIG_INDEX_SNIFF_MODE]    = { "sniffmode",  NVS_TYPE_U8,  0,                            NULL, NULL },
+    [CONFIG_INDEX_SNIFF_MS]      = { "sniffms",    NVS_TYPE_U32, 0,                            NULL, NULL },
+    [CONFIG_INDEX_WIFI_MS]       = { "wifims",     NVS_TYPE_U32, 0,                            NULL, NULL },
 };
 #define CONFIG_KEYS_END (&config_keys[sizeof(config_keys)/sizeof(*config_keys)])
 
@@ -101,8 +114,8 @@ static esp_err_t config_get_node_id(char *out, size_t *size)
             // Espressif...
             eth_mac[0] |= 2;
 
-            print_res = snprintf(out, *size, "%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
-                                 eth_mac[0], eth_mac[1], eth_mac[2], eth_mac[3], eth_mac[4], eth_mac[5]);
+            print_res = snprintf(out, *size, "V2X2MAP%02hhx%02hhx",
+                                 eth_mac[4], eth_mac[5]);
         }
 
         if (print_res > *size - 1)

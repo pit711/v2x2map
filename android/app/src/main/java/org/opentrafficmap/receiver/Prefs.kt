@@ -17,6 +17,7 @@ object Prefs {
     private const val KEY_NODE_ID        = "node_id"
     private const val KEY_AUDIO_FEEDBACK  = "audio_feedback"
     private const val KEY_MARKER_TTL_MIN  = "marker_ttl_min"
+    private const val KEY_SPAT_LIGHT      = "spat_light"
 
     const val DEFAULT_MARKER_TTL_MIN = 5
     const val MAX_MARKER_TTL_MIN     = 999_999
@@ -65,6 +66,12 @@ object Prefs {
 
     fun setMarkerTtlMinutes(ctx: Context, minutes: Int) =
         prefs(ctx).edit { putInt(KEY_MARKER_TTL_MIN, minutes.coerceIn(1, MAX_MARKER_TTL_MIN)) }
+
+    fun spatLightEnabled(ctx: Context): Boolean =
+        prefs(ctx).getBoolean(KEY_SPAT_LIGHT, true)
+
+    fun setSpatLightEnabled(ctx: Context, on: Boolean) =
+        prefs(ctx).edit { putBoolean(KEY_SPAT_LIGHT, on) }
 
     private fun prefs(ctx: Context) =
         ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

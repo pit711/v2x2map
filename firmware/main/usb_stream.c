@@ -1,13 +1,16 @@
 #include "usb_stream.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "driver/usb_serial_jtag.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "nvs.h"
 
+#include "config.h"
 #include "led.h"
 
 static const char TAG[] = "USB_STREAM";
@@ -57,4 +60,106 @@ void usb_stream_send_test_frame(void)
         0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C
     };
     usb_stream_publish_packet(test_payload, sizeof(test_payload), 1234567890U, 999U);
+}
+
+/* ── USB RX config channel ──────────────────────────────────────────────
+ * Protocol: wizard sends  "CFG:key=value\n"
+ *           device replies "CFG_OK:key\n" or "CFG_ERR:message\n"
+ * Keys map directly to NVS keys used by config.c (namespace "its").
+ * ──────────────────────────────────────────────────────────────────────*/
+static void cfg_reply(const char *msg)
+{
+    usb_serial_jtag_write_bytes((const uint8_t *)msg, strlen(msg), pdMS_TO_TICKS(200));
+}
+
+/* Map key name → config_index_t */
+static int cfg_key_to_index(const char *key)
+{
+    /* string keys */
+    if (!strcmp(key, "nodeid"))    return CONFIG_INDEX_NODEID;
+    if (!strcmp(key, "mqtturi"))   return CONFIG_INDEX_MQTT_URI;
+    if (!strcmp(key, "wifi1ssid")) return CONFIG_INDEX_WIFI1_SSID;
+    if (!strcmp(key, "wifi1pass")) return CONFIG_INDEX_WIFI1_PASS;
+    if (!strcmp(key, "wifi2ssid")) return CONFIG_INDEX_WIFI2_SSID;
+    if (!strcmp(key, "wifi2pass")) return CONFIG_INDEX_WIFI2_PASS;
+    if (!strcmp(key, "wifiip"))    return CONFIG_INDEX_WIFI_IP;
+    if (!strcmp(key, "wifinm"))    return CONFIG_INDEX_WIFI_NM;
+    if (!strcmp(key, "wifigw"))    return CONFIG_INDEX_WIFI_GW;
+    if (!strcmp(key, "wifidns"))   return CONFIG_INDEX_WIFI_DNS;
+    /* u8 keys */
+    if (!strcmp(key, "wifiopen"))  return CONFIG_INDEX_WIFI_OPEN;
+    if (!strcmp(key, "connmode"))  return CONFIG_INDEX_CONN_MODE;
+    if (!strcmp(key, "sniffmode")) return CONFIG_INDEX_SNIFF_MODE;
+    /* u32 keys */
+    if (!strcmp(key, "sniffms"))   return CONFIG_INDEX_SNIFF_MS;
+    if (!strcmp(key, "wifims"))    return CONFIG_INDEX_WIFI_MS;
+    return -1;
+}
+
+static bool is_u8_key(const char *key)
+{
+    return !strcmp(key,"wifiopen") || !strcmp(key,"connmode") || !strcmp(key,"sniffmode");
+}
+static bool is_u32_key(const char *key)
+{
+    return !strcmp(key,"sniffms") || !strcmp(key,"wifims");
+}
+
+static void handle_cfg_command(char *line)
+{
+    /* Expect "CFG:key=value" */
+    if (strncmp(line, "CFG:", 4) != 0) return;
+    char *kv = line + 4;
+    char *eq = strchr(kv, '=');
+    if (!eq) { cfg_reply("CFG_ERR:no equals\n"); return; }
+    *eq = '\0';
+    char *key = kv, *val = eq + 1;
+
+    int idx = cfg_key_to_index(key);
+    if (idx < 0) { cfg_reply("CFG_ERR:unknown key\n"); return; }
+
+    esp_err_t err;
+    if (is_u8_key(key)) {
+        uint8_t v = (uint8_t)atoi(val);
+        err = config_set_u8((config_index_t)idx, v);
+    } else if (is_u32_key(key)) {
+        uint32_t v = (uint32_t)atol(val);
+        err = config_set_u32((config_index_t)idx, v);
+    } else {
+        err = config_set_str((config_index_t)idx, val);
+    }
+
+    char reply[64];
+    if (err == ESP_OK) snprintf(reply, sizeof(reply), "CFG_OK:%s\n", key);
+    else               snprintf(reply, sizeof(reply), "CFG_ERR:%s:%s\n", key, esp_err_to_name(err));
+    cfg_reply(reply);
+}
+
+static void usb_config_rx_task(void *arg)
+{
+    char line[128];
+    int  pos = 0;
+
+    for (;;) {
+        uint8_t ch;
+        int n = usb_serial_jtag_read_bytes(&ch, 1, pdMS_TO_TICKS(50));
+        if (n <= 0) continue;
+
+        if (ch == '\n' || ch == '\r') {
+            if (pos > 0) {
+                line[pos] = '\0';
+                handle_cfg_command(line);
+                pos = 0;
+            }
+        } else if (pos < (int)sizeof(line) - 1) {
+            line[pos++] = (char)ch;
+        } else {
+            pos = 0;  /* overflow — reset */
+        }
+    }
+}
+
+void usb_config_rx_start(void)
+{
+    xTaskCreate(usb_config_rx_task, "usb_cfg_rx", 4096, NULL, 3, NULL);
 }

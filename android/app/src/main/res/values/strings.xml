@@ -71,6 +71,10 @@
     <string name="sniff_ms_hint">Sniff ms</string>
     <string name="ble_ms_hint">BLE ms</string>
 
+    <string name="spat_light_section">Traffic light</string>
+    <string name="spat_light_label">Show SPATEM signal indicator</string>
+    <string name="spat_light_hint">Displays a horizontal R/Y/G light when a traffic-light RSU is within 400 m and roughly ahead. Phase colour requires unsecured SPATEM; shows grey when secured or unknown.</string>
+
     <string name="mqtt_section">MQTT</string>
     <string name="mqtt_enable">Enable MQTT</string>
     <string name="mqtt_broker_label">Broker URL</string>

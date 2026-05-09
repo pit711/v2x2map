@@ -137,6 +137,44 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
+    <!-- Horizontal traffic light overlay — shown when a SPATEM RSU is nearby -->
+    <LinearLayout
+        android:id="@+id/spatLight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#CC111111"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="8dp"
+        android:elevation="6dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/map"
+        app:layout_constraintStart_toStartOf="@id/map">
+
+        <View
+            android:id="@+id/lightRed"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:background="@drawable/ic_status_dot"/>
+        <View
+            android:id="@+id/lightYellow"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/ic_status_dot"/>
+        <View
+            android:id="@+id/lightGreen"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/ic_status_dot"/>
+    </LinearLayout>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabLocate"
         android:layout_width="wrap_content"

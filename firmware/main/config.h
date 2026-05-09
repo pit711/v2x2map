@@ -20,7 +20,24 @@ typedef enum {
     CONFIG_INDEX_AUTOSTART_CHAN,
     CONFIG_INDEX_BROADCAST_ONLY,
     CONFIG_INDEX_LED_BRIGHTNESS,
+    /* WiFi credentials + behaviour */
+    CONFIG_INDEX_WIFI1_SSID,
+    CONFIG_INDEX_WIFI1_PASS,
+    CONFIG_INDEX_WIFI2_SSID,
+    CONFIG_INDEX_WIFI2_PASS,
+    CONFIG_INDEX_WIFI_OPEN,    /* u8: 1 = connect to any open AP */
+    CONFIG_INDEX_CONN_MODE,    /* u8: 0=ble 1=wifi 2=both */
+    CONFIG_INDEX_WIFI_IP,      /* str: static IP or "" for DHCP */
+    CONFIG_INDEX_WIFI_NM,
+    CONFIG_INDEX_WIFI_GW,
+    CONFIG_INDEX_WIFI_DNS,
+    CONFIG_INDEX_SNIFF_MODE,   /* u8: 0=realtime 1=cycle 2=individual */
+    CONFIG_INDEX_SNIFF_MS,     /* u32: sniff window ms  (default 10000) */
+    CONFIG_INDEX_WIFI_MS,      /* u32: WiFi window ms   (default 2000)  */
 } config_index_t;
+
+#define CONFIG_WIFI_SSID_BUFFER_SIZE  33
+#define CONFIG_WIFI_PASS_BUFFER_SIZE  65
 
 esp_err_t config_get_u8(config_index_t index, uint8_t *out);
 esp_err_t config_set_u8(config_index_t index, uint8_t value);

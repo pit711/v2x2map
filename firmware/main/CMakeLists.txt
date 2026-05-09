@@ -14,6 +14,7 @@ idf_component_register(
         "temperature.c"
         "usb_stream.c"
         "bt_stream.c"
+        "wifi_manager.c"
     PRIV_REQUIRES
         app_trace
         app_update
