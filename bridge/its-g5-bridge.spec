@@ -1,12 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all
+# Bridge only — no wizard, no esptool, no tkinter → smaller executable.
 
-datas = [('dashboard.html', '.'), ('firmware/bootloader.bin', 'firmware'), ('firmware/partition-table.bin', 'firmware'), ('firmware/ota_data_initial.bin', 'firmware'), ('firmware/firmware.bin', 'firmware')]
+datas = [('dashboard.html', '.')]
 binaries = []
-hiddenimports = ['setup_wizard']
-tmp_ret = collect_all('esptool')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
+hiddenimports = ['dashboard_server']
 
 a = Analysis(
     ['its_g5_bridge.py'],
@@ -17,7 +14,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['tkinter', '_tkinter', 'esptool', 'setup_wizard', 'setup_main'],
     noarchive=False,
     optimize=0,
 )
@@ -30,6 +27,7 @@ exe = EXE(
     a.datas,
     [],
     name='its-g5-bridge',
+    icon='icons/its-g5-bridge.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

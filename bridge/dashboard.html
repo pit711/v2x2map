@@ -1,266 +1,763 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
-<title>ITS-G5 Receiver Dashboard</title>
+<title>V2X2MAP — ITS-G5 Dashboard</title>
+<meta name="description" content="V2X2MAP ITS-G5 live dashboard">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin="">
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: ui-monospace, Consolas, monospace; background:#0e1116; color:#dde; }
-  header { padding: 8px 14px; background:#161b22; border-bottom:1px solid #30363d; display:flex; gap:24px; align-items:baseline; flex-wrap:wrap; }
-  header h1 { font-size:14px; margin:0; color:#fff; font-weight:600; }
-  header .stat { font-size:12px; color:#8b949e; }
-  header .stat b { color:#58a6ff; }
-  #conn { font-size:11px; padding:2px 8px; border-radius:10px; }
-  #conn.up { background:#1f6feb; color:#fff; }
-  #conn.down { background:#da3633; color:#fff; }
+* { box-sizing: border-box; }
+html, body { margin:0; font-family:ui-monospace,Consolas,monospace; font-size:14px;
+             background:#0e1116; color:#dde; height:100%; }
 
-  .toggle { background:#21262d; color:#8b949e; border:1px solid #30363d; padding:3px 10px; border-radius:12px; font-size:11px; cursor:pointer; font-family:inherit; }
-  .toggle:hover:not([disabled]) { background:#30363d; color:#dde; }
-  .toggle.on { background:#238636; color:#fff; border-color:#238636; }
-  .toggle.on:hover { background:#2ea043; }
-  .toggle[disabled] { opacity:0.5; cursor:not-allowed; }
+/* ── Header ──────────────────────────────────────────────────────────────── */
+header {
+  padding:7px 14px; background:#161b22; border-bottom:1px solid #30363d;
+  display:flex; gap:14px; align-items:center; flex-wrap:wrap; flex-shrink:0;
+}
+header h1 { font-size:15px; margin:0; color:#fff; font-weight:700; letter-spacing:.5px; }
+.stat { font-size:12px; color:#8b949e; white-space:nowrap; }
+.stat b { color:#58a6ff; }
 
-  main { display:grid; grid-template-columns: 1fr 1fr; gap:1px; background:#30363d; height: calc(100vh - 40px); min-height:0; }
-  #map { background:#000; }
-  #logwrap { background:#0d1117; overflow:hidden; display:flex; flex-direction:column; min-height:0; }
-  #logwrap h2 { font-size:12px; color:#8b949e; margin:0; padding:6px 10px; border-bottom:1px solid #21262d; text-transform:uppercase; letter-spacing:1px; }
-  #log { flex:1; overflow:auto; font-size:11px; min-height:0; }
+#serial-dot { display:inline-block; width:9px; height:9px; border-radius:50%;
+              background:#444; margin-right:4px; vertical-align:middle; }
+#serial-dot.up   { background:#3fb950; }
+#serial-dot.down { background:#da3633; }
 
-  table { width:100%; border-collapse: collapse; }
-  th { position:sticky; top:0; background:#161b22; color:#8b949e; padding:4px 8px; text-align:left; font-weight:500; border-bottom:1px solid #30363d; }
-  td { padding:3px 8px; border-bottom:1px solid #161b22; vertical-align:top; white-space:nowrap; }
-  tr:hover td { background:#161b22; }
-  .hex { color:#79c0ff; font-size:10px; }
-  .et-its  { color:#7ee787; font-weight:bold; }
-  .et-wlan { color:#8b949e; }
-  .et-?    { color:#f0883e; }
-  #empty { padding:18px; color:#666; text-align:center; }
+#conn { font-size:12px; padding:3px 9px; border-radius:10px; }
+#conn.up   { background:#1f6feb; color:#fff; }
+#conn.down { background:#da3633; color:#fff; }
 
-  .car-icon { background:none; border:none; }
-  .car-icon svg { display:block; filter: drop-shadow(0 0 2px rgba(0,0,0,0.6)); }
-  .leaflet-popup-content { font-family: ui-monospace, Consolas, monospace; font-size:12px; line-height:1.55; }
-  .leaflet-popup-content .lbl { color:#666; display:inline-block; min-width:64px; }
+.btn {
+  font-family:inherit; font-size:12px; cursor:pointer;
+  padding:3px 11px; border-radius:12px; border:1px solid #30363d;
+  background:#21262d; color:#8b949e;
+}
+.btn:hover:not([disabled]) { background:#30363d; color:#dde; }
+.btn.on  { background:#238636; color:#fff; border-color:#238636; }
+.btn.on:hover { background:#2ea043; }
+.btn.rec { background:#6e2020; color:#f47979; border-color:#6e2020; }
+.btn.rec:hover { background:#8a2828; }
+.btn[disabled] { opacity:.5; cursor:not-allowed; }
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+main { display:grid; grid-template-columns:1fr 1fr; gap:1px;
+       background:#30363d; height:calc(100vh - 44px); min-height:0; }
+#map { min-height:0; }
+
+/* locate button */
+.locate-btn { width:30px; height:30px; font-size:19px; line-height:28px; text-align:center;
+              background:#fff; border:none; cursor:pointer; display:block;
+              color:#333; border-radius:2px; }
+.locate-btn:hover { background:#f4f4f4; }
+
+/* ── Right panel ─────────────────────────────────────────────────────────── */
+#rightpanel { background:#0d1117; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+
+/* Tab bar */
+#tab-bar { display:flex; border-bottom:1px solid #21262d; flex-shrink:0; }
+.tab {
+  font-family:inherit; font-size:12px; padding:7px 14px; cursor:pointer;
+  border:none; background:none; color:#8b949e; border-bottom:2px solid transparent;
+}
+.tab:hover { color:#dde; background:#161b22; }
+.tab.active { color:#58a6ff; border-bottom-color:#58a6ff; }
+
+/* Tab panes */
+.pane { display:none; flex:1; min-height:0; flex-direction:column; overflow:hidden; }
+.pane.active { display:flex; }
+
+/* ── Log pane ────────────────────────────────────────────────────────────── */
+#log-filters {
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  padding:6px 10px; border-bottom:1px solid #161b22; flex-shrink:0;
+}
+.fchip {
+  font-family:inherit; font-size:12px; padding:2px 9px; border-radius:10px;
+  border:1px solid #30363d; background:#21262d; color:#8b949e; cursor:pointer;
+}
+.fchip:hover { background:#30363d; }
+.fchip.on { color:#fff; border-color:transparent; }
+.fchip[data-type="CAM"].on    { background:#1565c0; }
+.fchip[data-type="DENM"].on   { background:#bf360c; }
+.fchip[data-type="SPATEM"].on { background:#2e7d32; }
+.fchip[data-type="MAPEM"].on  { background:#6a1b9a; }
+.fchip[data-type="OTHER"].on  { background:#546e7a; }
+
+#station-list { flex:1; overflow-y:auto; }
+
+#empty-log { padding:20px; color:#555; text-align:center; }
+
+.srow {
+  display:grid;
+  grid-template-columns:32px 58px 96px 1fr 70px 36px 20px 20px;
+  align-items:center; padding:5px 8px; border-bottom:1px solid #161b22;
+  cursor:pointer; user-select:none; gap:0 4px;
+}
+.srow:hover { background:#161b22; }
+.srow.stale { opacity:.4; }
+.srow-icon  { display:flex; align-items:center; justify-content:center; }
+.srow-badge { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; }
+.srow-id    { font-size:11px; color:#79c0ff; }
+.srow-sum   { font-size:12px; color:#8b949e; overflow:hidden; text-overflow:ellipsis; }
+.srow-time  { font-size:11px; color:#555; text-align:right; }
+.srow-count { font-size:11px; color:#555; text-align:right; }
+.srow-lock  { font-size:12px; text-align:center; }
+.srow-chev  { font-size:12px; color:#555; text-align:center; }
+
+.frow {
+  display:grid; grid-template-columns:70px 60px 38px 1fr;
+  padding:3px 8px 3px 42px; background:#080c10;
+  border-bottom:1px solid #0d1117; gap:0 6px; cursor:default;
+}
+.frow-time { font-size:11px; color:#555; }
+.frow-et   { font-size:11px; font-weight:600; }
+.frow-len  { font-size:11px; color:#555; }
+.frow-hex  { font-size:11px; color:#79c0ff; overflow:hidden; text-overflow:ellipsis; }
+.et-its  { color:#7ee787; }
+.et-wlan { color:#8b949e; }
+.et-unk  { color:#f0883e; }
+
+/* ── Stats pane ──────────────────────────────────────────────────────────── */
+#pane-stats { overflow-y:auto; padding:14px; gap:16px; }
+.stats-card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:12px 16px; }
+.stats-card h3 { margin:0 0 10px; font-size:13px; color:#8b949e; text-transform:uppercase; letter-spacing:.8px; }
+.kv-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; }
+.kv { display:flex; flex-direction:column; }
+.kv-key   { font-size:11px; color:#555; }
+.kv-value { font-size:15px; color:#58a6ff; font-weight:600; }
+
+#type-table { width:100%; border-collapse:collapse; font-size:13px; }
+#type-table th { color:#8b949e; text-align:left; padding:4px 8px; font-weight:500;
+                 border-bottom:1px solid #30363d; }
+#type-table td { padding:5px 8px; border-bottom:1px solid #161b22; }
+#type-table td:last-child { text-align:right; color:#555; }
+
+.broker-row { display:flex; align-items:center; gap:8px; padding:5px 0;
+              border-bottom:1px solid #161b22; font-size:12px; }
+.broker-dot { width:9px; height:9px; border-radius:50%; background:#555; flex-shrink:0; }
+.broker-dot.up { background:#3fb950; }
+
+/* rate sparkline */
+#sparkline { display:flex; align-items:flex-end; gap:1px; height:48px;
+             margin-top:8px; }
+.spark-bar { flex:1; background:#1f6feb; border-radius:1px 1px 0 0; min-height:2px; }
+
+/* ── MAC pane ────────────────────────────────────────────────────────────── */
+#pane-macs { overflow:hidden; }
+#mac-toolbar { padding:8px 10px; border-bottom:1px solid #161b22; flex-shrink:0; display:flex; gap:8px; }
+#mac-search {
+  font-family:inherit; font-size:13px; background:#161b22; border:1px solid #30363d;
+  color:#dde; padding:4px 10px; border-radius:6px; flex:1;
+}
+#mac-search::placeholder { color:#555; }
+#mac-table-wrap { flex:1; overflow-y:auto; }
+#mac-table { width:100%; border-collapse:collapse; font-size:12px; }
+#mac-table th {
+  position:sticky; top:0; background:#161b22; color:#8b949e; padding:5px 8px;
+  text-align:left; font-weight:500; border-bottom:1px solid #30363d;
+  cursor:pointer; user-select:none; white-space:nowrap;
+}
+#mac-table th:hover { color:#dde; }
+#mac-table td { padding:4px 8px; border-bottom:1px solid #161b22; white-space:nowrap; }
+#mac-table tr:hover td { background:#161b22; }
+.mac-addr { color:#79c0ff; font-family:inherit; }
+.mac-types { color:#8b949e; font-size:11px; }
+#mac-empty { padding:20px; color:#555; text-align:center; }
+
+/* Leaflet popup */
+.leaflet-popup-content { font-family:ui-monospace,Consolas,monospace; font-size:13px; line-height:1.6; }
+.leaflet-popup-content .lbl { color:#666; display:inline-block; min-width:72px; }
+.mi { background:none; border:none; }
+.mi svg { display:block; filter:drop-shadow(0 0 2px rgba(0,0,0,.7)); }
 </style>
 </head>
 <body>
 <header>
-  <h1>ITS-G5 Receiver Dashboard</h1>
+  <h1>V2X2MAP</h1>
   <span class="stat">node <b id="node">?</b></span>
   <span class="stat">total <b id="ntotal">0</b></span>
-  <span class="stat">last 60s <b id="nrate">0</b></span>
-  <span class="stat">last frame <b id="last">–</b></span>
+  <span class="stat">60s <b id="nrate">0</b></span>
+  <span class="stat">B/s <b id="nbytes">—</b></span>
+  <span class="stat">last <b id="last">–</b></span>
+  <span class="stat"><span id="serial-dot"></span><span id="serial-lbl">—</span></span>
   <span style="flex:1"></span>
-  <button id="mqtt-toggle" class="toggle" type="button" title="Toggle MQTT publishing to opentrafficmap.org">
-    MQTT: <span id="mqtt-state-text">…</span>
-  </button>
+  <button id="rec-btn" class="btn" type="button" title="Start/stop PCAP recording">⏺ Record</button>
+  <button id="mqtt-toggle" class="btn" type="button">MQTT: <span id="mqtt-state-text">off</span></button>
   <span id="conn" class="down">disconnected</span>
 </header>
 <main>
   <div id="map"></div>
-  <div id="logwrap">
-    <h2>frame log (newest first)</h2>
-    <div id="log">
-      <div id="empty">waiting for frames…</div>
+  <div id="rightpanel">
+    <div id="tab-bar">
+      <button class="tab active" data-tab="log">Log</button>
+      <button class="tab"        data-tab="stats">Statistics</button>
+      <button class="tab"        data-tab="macs">MAC Analysis</button>
+    </div>
+
+    <!-- ── Log pane ─────────────────────────────────────────────────────── -->
+    <div id="pane-log" class="pane active">
+      <div id="log-filters">
+        <button class="fchip on" data-type="CAM">CAM</button>
+        <button class="fchip on" data-type="DENM">DENM</button>
+        <button class="fchip on" data-type="SPATEM">SPATEM</button>
+        <button class="fchip on" data-type="MAPEM">MAPEM</button>
+        <button class="fchip on" data-type="OTHER">Other</button>
+      </div>
+      <div id="station-list"><div id="empty-log">Waiting for frames...</div></div>
+    </div>
+
+    <!-- ── Stats pane ────────────────────────────────────────────────────── -->
+    <div id="pane-stats" class="pane">
+      <div class="stats-card">
+        <h3>Session</h3>
+        <div class="kv-grid">
+          <div class="kv"><span class="kv-key">Uptime</span><span class="kv-value" id="st-uptime">—</span></div>
+          <div class="kv"><span class="kv-key">Total frames</span><span class="kv-value" id="st-frames">0</span></div>
+          <div class="kv"><span class="kv-key">Rate (60 s)</span><span class="kv-value" id="st-rate">0 /min</span></div>
+          <div class="kv"><span class="kv-key">Total bytes</span><span class="kv-value" id="st-bytes">0</span></div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#555">Frames per second (last 60 s)</div>
+        <div id="sparkline"></div>
+      </div>
+
+      <div class="stats-card">
+        <h3>Message types</h3>
+        <table id="type-table">
+          <thead><tr><th>Type</th><th>Description</th><th>Frames</th></tr></thead>
+          <tbody id="type-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="stats-card">
+        <h3>MQTT Brokers</h3>
+        <div id="broker-list"><span style="color:#555;font-size:12px">No broker configured.</span></div>
+      </div>
+
+      <div class="stats-card">
+        <h3>Recording</h3>
+        <div id="rec-status" style="font-size:13px;color:#555">No active recording.</div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn" id="rec-start-btn" onclick="startRecording()">Start</button>
+          <button class="btn" id="rec-stop-btn"  onclick="stopRecording()" disabled>Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MAC pane ──────────────────────────────────────────────────────── -->
+    <div id="pane-macs" class="pane">
+      <div id="mac-toolbar">
+        <input id="mac-search" type="search" placeholder="Filter MAC address..." oninput="renderMacTable()">
+        <button class="btn" onclick="exportMacCsv()">Export CSV</button>
+      </div>
+      <div id="mac-table-wrap">
+        <table id="mac-table">
+          <thead>
+            <tr>
+              <th onclick="sortMac('mac')">MAC ↕</th>
+              <th onclick="sortMac('type')">Type ↕</th>
+              <th onclick="sortMac('station')">Station ↕</th>
+              <th onclick="sortMac('first')">First seen ↕</th>
+              <th onclick="sortMac('last')">Last seen ↕</th>
+              <th onclick="sortMac('count')">Frames ↕</th>
+              <th>Position</th>
+            </tr>
+          </thead>
+          <tbody id="mac-tbody"><tr><td colspan="7" id="mac-empty">No MACs received yet.</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""></script>
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
-  // ----- map -----
-  const map = L.map('map').setView([51.0, 10.0], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 19,
-  }).addTo(map);
+'use strict';
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// ─── Message type config ──────────────────────────────────────────────────
+const MSG = {
+  CAM:    { color:'#1976D2', short:'CAM',    label:'Vehicle (CAM)' },
+  DENM:   { color:'#E65100', short:'DENM',   label:'Hazard warning (DENM)' },
+  MAPEM:  { color:'#7B1FA2', short:'MAPEM',  label:'Intersection map (MAPEM)' },
+  SPATEM: { color:'#388E3C', short:'SPATEM', label:'Signal phase (SPATEM)' },
+  IVIM:   { color:'#C2185B', short:'IVIM',   label:'In-vehicle info (IVIM)' },
+  SREM:   { color:'#00838F', short:'SREM',   label:'Signal request (SREM)' },
+  SSEM:   { color:'#00838F', short:'SSEM',   label:'Signal status (SSEM)' },
+  TLM:    { color:'#AFB42B', short:'TLM',    label:'Traffic light (TLM)' },
+  RTCMEM: { color:'#455A64', short:'RTCM',   label:'Correction data (RTCMEM)' },
+  UNKNOWN:{ color:'#607D8B', short:'?',      label:'Unknown' },
+};
+const PRIMARY = ['CAM','DENM','SPATEM','MAPEM'];
+function typeConf(t) { return MSG[t] || MSG.UNKNOWN; }
+
+// ─── SVG icons ────────────────────────────────────────────────────────────
+function svg(w,h,vb,body){return`<svg width="${w}" height="${h}" viewBox="${vb}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;}
+function carSvg(c,r){const rot=isFinite(r)?r:0;return svg(28,28,'-14 -14 28 28',`<g style="transform:rotate(${rot}deg);transform-origin:0 0"><path d="M0,-11 L8,8 L0,3 L-8,8 Z" fill="${c}" stroke="#fff" stroke-width="1.5"/></g>`);}
+function tlSvg(c){return svg(22,30,'-11 -15 22 30',`<rect x="-7" y="-14" width="14" height="28" rx="4" fill="${c}"/><circle cx="0" cy="-7" r="4" fill="#fff" opacity=".35"/><circle cx="0" cy="0" r="4" fill="#fff" opacity=".35"/><circle cx="0" cy="7" r="4" fill="#fff" opacity=".35"/>`);}
+function hazSvg(c){return svg(28,26,'-14 -13 28 26',`<path d="M0,-12 L12.5,10 L-12.5,10 Z" fill="${c}" stroke="#fff" stroke-width="1.5"/><text x="0" y="8" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold" font-family="sans-serif">!</text>`);}
+function intSvg(c){return svg(26,26,'-13 -13 26 26',`<line x1="0" y1="-12" x2="0" y2="12" stroke="${c}" stroke-width="4" stroke-linecap="round"/><line x1="-12" y1="0" x2="12" y2="0" stroke="${c}" stroke-width="4" stroke-linecap="round"/><circle cx="0" cy="0" r="4.5" fill="${c}" stroke="#fff" stroke-width="1.5"/>`);}
+function dotSvg(c){return svg(20,20,'-10 -10 20 20',`<circle r="8" fill="${c}" stroke="#fff" stroke-width="1.5"/>`);}
+function typeSvg(t,c,h){switch(t){case'CAM':return carSvg(c,h);case'SPATEM':return tlSvg(c);case'DENM':return hazSvg(c);case'MAPEM':return intSvg(c);default:return dotSvg(c);}}
+function mkIcon(t,c,h){const sizes={CAM:[28,28],SPATEM:[22,30],DENM:[28,26],MAPEM:[26,26]};const[w,sz]=sizes[t]||[20,20];return L.divIcon({className:'mi',html:typeSvg(t,c,h),iconSize:[w,sz||w],iconAnchor:[(w)/2,(sz||w)/2]});}
+
+// ─── Utilities ────────────────────────────────────────────────────────────
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtTime(ms){return new Date(ms).toLocaleTimeString();}
+function fmtBytes(b){if(b>1e9)return(b/1e9).toFixed(2)+' GB';if(b>1e6)return(b/1e6).toFixed(1)+' MB';if(b>1e3)return(b/1e3).toFixed(1)+' KB';return b+' B';}
+function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
+function stationKey(f){const sid=f.station_id||(f.gn_addr?f.gn_addr.replace(/:/g,''):'anon');return`${f.msg_type||'UNKNOWN'}|${sid}`;}
+
+// ─── Map ──────────────────────────────────────────────────────────────────
+const map = L.map('map').setView([51.0, 10.0], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+
+// Location button
+const LocCtrl = L.Control.extend({
+  onAdd(){
+    const d=L.DomUtil.create('div','leaflet-bar leaflet-control');
+    const b=L.DomUtil.create('button','locate-btn',d);
+    b.innerHTML='⊕'; b.title='Show my location';
+    L.DomEvent.on(b,'click',L.DomEvent.stopPropagation)
+              .on(b,'click',L.DomEvent.preventDefault)
+              .on(b,'click',()=>map.locate({setView:true,maxZoom:16}));
+    return d;
   }
-  function colorForId(id) {
-    let h = 0;
-    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-    const hue = ((h % 360) + 360) % 360;
-    return `hsl(${hue}, 80%, 55%)`;
+});
+new LocCtrl({position:'topleft'}).addTo(map);
+
+let locCircle = null;
+map.on('locationfound', e => {
+  if(locCircle) locCircle.remove();
+  locCircle = L.circle(e.latlng,{radius:e.accuracy/2,color:'#58a6ff',fillOpacity:.15}).addTo(map);
+});
+map.on('locationerror', () => alert('Location not available.'));
+
+// ─── Vehicle tracking ─────────────────────────────────────────────────────
+const vehicles  = new Map();
+const TRACK_MAX = 500;
+const STALE_MS  = 60_000;
+let firstFix    = false;
+
+function popupHtml(v){
+  const f=v.lastFrame, conf=typeConf(f.msg_type);
+  const kmh=f.speed_mps!==undefined?(f.speed_mps*3.6).toFixed(1)+' km/h':'—';
+  const hdg=f.heading_deg!==undefined?f.heading_deg.toFixed(1)+'°':'—';
+  return`<div>
+    <div style="font-weight:bold;color:${conf.color};margin-bottom:4px">${esc(conf.label)}</div>
+    <div><span class="lbl">ID</span>${esc(f.gn_addr||'—')}</div>
+    <div><span class="lbl">Station</span>${esc(f.station_type_label||'—')}</div>
+    <div><span class="lbl">Position</span>${f.lat!==undefined?f.lat.toFixed(6)+', '+f.lon.toFixed(6):'—'}</div>
+    <div><span class="lbl">Speed</span>${kmh}</div>
+    <div><span class="lbl">Heading</span>${hdg}</div>
+    <div><span class="lbl">Frames</span>${v.count}</div>
+    <div><span class="lbl">Last seen</span>${fmtTime(v.lastMs)}</div>
+    ${f.secured?'<div><span class="lbl">Security</span>🔒 secured</div>':''}
+  </div>`;
+}
+
+function onPositionFrame(f){
+  if(f.lat===undefined||f.lon===undefined)return;
+  const conf=typeConf(f.msg_type), key=stationKey(f), ll=[f.lat,f.lon];
+  const track=(f.msg_type==='CAM');
+  let v=vehicles.get(key);
+  if(!v){
+    const line=track?L.polyline([],{color:conf.color,weight:3,opacity:.8}).addTo(map):null;
+    v={count:0,lastFrame:f,lastMs:Date.now(),points:[],line,
+       marker:L.marker(ll,{icon:mkIcon(f.msg_type,conf.color,f.heading_deg)}).addTo(map)};
+    v.marker.bindPopup('',{autoPan:true,maxWidth:360});
+    v.marker.on('popupopen',()=>v.marker.setPopupContent(popupHtml(v)));
+    vehicles.set(key,v);
+    if(!firstFix){firstFix=true;map.setView(ll,14);}
   }
+  v.count++;v.lastFrame=f;v.lastMs=Date.now();
+  if(track){v.points.push(ll);if(v.points.length>TRACK_MAX)v.points.shift();v.line.setLatLngs(v.points);}
+  v.marker.setLatLng(ll);
+  v.marker.setIcon(mkIcon(f.msg_type,conf.color,f.heading_deg));
+  if(v.marker.isPopupOpen())v.marker.setPopupContent(popupHtml(v));
+}
 
-  // ----- vehicle tracking -----
-  const vehicles = new Map();
-  let firstFix = false;
-
-  function carIcon(headingDeg, color) {
-    const rot = Number.isFinite(headingDeg) ? headingDeg : 0;
-    return L.divIcon({
-      className: 'car-icon',
-      html: `<svg width="26" height="26" viewBox="-13 -13 26 26" style="transform: rotate(${rot}deg)">
-        <path d="M0,-11 L8,9 L0,4 L-8,9 Z" fill="${color}" stroke="#fff" stroke-width="1.2"/>
-      </svg>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
-    });
+setInterval(()=>{
+  const now=Date.now();
+  for(const[k,v]of vehicles){
+    if(now-v.lastMs>STALE_MS){v.marker.remove();if(v.line)v.line.remove();vehicles.delete(k);}
   }
+},10_000);
 
-  function popupHtml(v) {
-    const f = v.lastFrame;
-    const speedKmh = (f.speed_mps * 3.6).toFixed(1);
-    return `<div>
-      <div style="font-weight:bold;color:${v.color};margin-bottom:4px;">${escapeHtml(f.station_type_label)}</div>
-      <div><span class="lbl">ID</span>${escapeHtml(f.gn_addr)}</div>
-      <div><span class="lbl">Position</span>${f.lat.toFixed(6)}, ${f.lon.toFixed(6)}</div>
-      <div><span class="lbl">Speed</span>${speedKmh} km/h</div>
-      <div><span class="lbl">Heading</span>${f.heading_deg.toFixed(1)}°</div>
-      <div><span class="lbl">PAI</span>${f.pai}</div>
-      <div><span class="lbl">Frames</span>${v.count}</div>
-      <div><span class="lbl">Last seen</span>${v.lastSeen}</div>
+// ─── Station log model ────────────────────────────────────────────────────
+const stations    = new Map();
+const MAX_STATIONS  = 150;
+const FRAME_HISTORY = 20;
+
+function updateStation(f){
+  const key=stationKey(f);
+  let s=stations.get(key);
+  if(!s){
+    s={key,msgType:f.msg_type||'UNKNOWN',stationId:f.station_id,gnAddr:f.gn_addr,
+       frameCount:0,lastSeen:0,lastFrame:f,recentFrames:[],expanded:false,secured:null};
+    stations.set(key,s);
+    if(stations.size>MAX_STATIONS){
+      let ok=null,ot=Infinity;
+      for(const[k,v]of stations)if(v.lastSeen<ot){ok=k;ot=v.lastSeen;}
+      if(ok)stations.delete(ok);
+    }
+  }
+  s.frameCount++;s.lastSeen=Date.now();s.lastFrame=f;
+  if(f.secured!==undefined)s.secured=f.secured;
+  s.recentFrames.unshift(f);
+  if(s.recentFrames.length>FRAME_HISTORY)s.recentFrames.pop();
+}
+
+// ─── MAC analysis model ───────────────────────────────────────────────────
+const macEntries = new Map(); // mac → {mac, firstSeen, lastSeen, count, types, lastLat, lastLon, stationType}
+let macSortCol='last', macSortAsc=false;
+
+function updateMac(f){
+  const mac=f.gn_addr; if(!mac)return;
+  let e=macEntries.get(mac);
+  const now=Date.now();
+  if(!e){e={mac,firstSeen:now,lastSeen:now,count:0,types:new Set(),lastLat:null,lastLon:null,stationType:'—'};macEntries.set(mac,e);}
+  e.lastSeen=now;e.count++;
+  if(f.msg_type)e.types.add(f.msg_type);
+  if(f.lat!==undefined){e.lastLat=f.lat;e.lastLon=f.lon;}
+  if(f.station_type_label)e.stationType=f.station_type_label;
+}
+
+// ─── Sparkline (rate history, one value per second) ───────────────────────
+const sparkData=[]; // last 60 per-second counts
+let sparkBucket=0, lastSparkSec=Math.floor(Date.now()/1000);
+
+function tickSparkline(now){
+  const s=Math.floor(now/1000);
+  if(s!==lastSparkSec){
+    sparkData.push(sparkBucket); sparkBucket=0; lastSparkSec=s;
+    if(sparkData.length>60)sparkData.shift();
+    renderSparkline();
+  } else sparkBucket++;
+}
+function renderSparkline(){
+  const el=document.getElementById('sparkline'); if(!el)return;
+  const max=Math.max(1,...sparkData);
+  el.innerHTML=sparkData.map(v=>`<div class="spark-bar" style="height:${Math.max(4,Math.round(v/max*44))}px" title="${v}/s"></div>`).join('');
+}
+
+// ─── Type counts ─────────────────────────────────────────────────────────
+const typeCounts={};
+function updateTypeCounts(t){typeCounts[t]=(typeCounts[t]||0)+1;}
+
+function renderTypeCounts(){
+  const tbody=document.getElementById('type-tbody'); if(!tbody)return;
+  const total=Object.values(typeCounts).reduce((a,b)=>a+b,0)||1;
+  const rows=Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]).map(([t,n])=>{
+    const conf=typeConf(t);
+    return`<tr>
+      <td style="color:${conf.color};font-weight:700">${esc(conf.short)}</td>
+      <td style="color:#8b949e">${esc(conf.label)}</td>
+      <td>${n} <span style="color:#555">(${(n/total*100).toFixed(1)}%)</span></td>
+    </tr>`;
+  }).join('');
+  tbody.innerHTML=rows||'<tr><td colspan="3" style="color:#555;padding:8px">Noch keine Daten.</td></tr>';
+}
+
+// ─── Filter ───────────────────────────────────────────────────────────────
+const filterActive=new Set(['CAM','DENM','SPATEM','MAPEM','OTHER']);
+function isVisible(t){return PRIMARY.includes(t)?filterActive.has(t):filterActive.has('OTHER');}
+
+document.querySelectorAll('.fchip').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const t=b.dataset.type;
+    filterActive.has(t)?filterActive.delete(t):filterActive.add(t);
+    b.classList.toggle('on',filterActive.has(t));
+    renderStationList();
+  });
+});
+
+// ─── Tab switching ────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('pane-'+tab.dataset.tab).classList.add('active');
+    if(tab.dataset.tab==='stats'){renderTypeCounts();renderSparkline();}
+    if(tab.dataset.tab==='macs'){renderMacTable();}
+  });
+});
+
+// ─── Log rendering ────────────────────────────────────────────────────────
+function buildSummary(s){
+  const f=s.lastFrame,cnt=`${s.frameCount}×`;
+  let d='';
+  switch(s.msgType){
+    case'CAM':{const ps=[];
+      if(f.speed_mps!==undefined&&f.speed_mps>0.5)ps.push((f.speed_mps*3.6).toFixed(0)+' km/h');
+      if(f.heading_deg!==undefined)ps.push(['N','NE','E','SE','S','SW','W','NW'][Math.round(f.heading_deg/45)%8]);
+      if(f.lat!==undefined)ps.push(f.lat.toFixed(4)+','+f.lon.toFixed(4));
+      d=ps.join('  ')||'—';break;}
+    case'SPATEM':d='Signal phase';break;
+    case'DENM':d='Hazard warning';break;
+    case'MAPEM':d='Intersection map';break;
+    default:d=f.len!==undefined?`len=${f.len}`:'—';
+  }
+  return`${cnt}  ${d}`;
+}
+function etCls(et){if(et===0x8947)return'et-its';if(et==null)return'et-unk';return'et-wlan';}
+function etLbl(et){if(et===0x8947)return'ITS-G5';if(et==null)return'?';return'0x'+et.toString(16).padStart(4,'0');}
+
+const timeFmt=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+function renderStationList(){
+  const now=Date.now();
+  const el=document.getElementById('station-list');
+  const sorted=[...stations.values()].filter(s=>isVisible(s.msgType)).sort((a,b)=>b.lastSeen-a.lastSeen);
+  if(!sorted.length){el.innerHTML='<div id="empty-log">Waiting for frames...</div>';return;}
+  let html='';
+  for(const s of sorted){
+    const conf=typeConf(s.msgType);
+    const stale=(now-s.lastSeen)>30_000;
+    const sid=s.stationId?'#'+s.stationId.slice(-8):'—';
+    const t=timeFmt.format(new Date(s.lastSeen));
+    const lock=s.secured===true?'🔒':'';
+    const chev=s.expanded?'▾':'▸';
+    html+=`<div class="srow${stale?' stale':''}" data-key="${esc(s.key)}">
+      <div class="srow-icon">${typeSvg(s.msgType,conf.color,s.lastFrame?.heading_deg)}</div>
+      <div class="srow-badge" style="color:${conf.color}">${esc(conf.short)}</div>
+      <div class="srow-id">${esc(sid)}</div>
+      <div class="srow-sum">${esc(buildSummary(s))}</div>
+      <div class="srow-time">${esc(t)}</div>
+      <div class="srow-count">${s.frameCount}×</div>
+      <div class="srow-lock">${lock}</div>
+      <div class="srow-chev">${chev}</div>
     </div>`;
-  }
-
-  function onPositionFrame(f) {
-    const id = f.gn_addr;
-    const ll = [f.lat, f.lon];
-    let v = vehicles.get(id);
-    if (!v) {
-      const color = colorForId(id);
-      v = {
-        color, points: [], count: 0, lastFrame: f,
-        lastSeen: new Date().toLocaleTimeString(),
-        line: L.polyline([], { color, weight: 3, opacity: 0.85 }).addTo(map),
-        marker: L.marker(ll, { icon: carIcon(f.heading_deg, color) }).addTo(map),
-      };
-      v.marker.bindPopup('', { autoPan: true, maxWidth: 360 });
-      v.marker.on('popupopen', () => v.marker.setPopupContent(popupHtml(v)));
-      vehicles.set(id, v);
-      if (!firstFix) { firstFix = true; map.setView(ll, 14); }
-    }
-    v.points.push(ll);
-    v.count++;
-    v.lastFrame = f;
-    v.lastSeen = new Date().toLocaleTimeString();
-    v.line.setLatLngs(v.points);
-    v.marker.setLatLng(ll);
-    v.marker.setIcon(carIcon(f.heading_deg, v.color));
-    if (v.marker.isPopupOpen()) v.marker.setPopupContent(popupHtml(v));
-  }
-
-  // ----- frame log -----
-  const logBody = document.getElementById('log');
-  const empty   = document.getElementById('empty');
-  const conn    = document.getElementById('conn');
-  const nNode   = document.getElementById('node');
-  const nTotal  = document.getElementById('ntotal');
-  const nRate   = document.getElementById('nrate');
-  const nLast   = document.getElementById('last');
-
-  let table = null;
-  function ensureTable() {
-    if (table) return;
-    if (empty) empty.remove();
-    table = document.createElement('table');
-    table.innerHTML = `
-      <thead><tr>
-        <th>time</th><th>sec</th><th>usec</th><th>len</th><th>EtherType</th><th>hex preview</th>
-      </tr></thead>
-      <tbody></tbody>`;
-    logBody.appendChild(table);
-  }
-
-  let total = 0;
-  const recent = [];
-  const MAX_ROWS = 500;
-
-  function classifyEtherType(et) {
-    if (et === 0x8947) return ['ITS-G5', 'et-its'];
-    if (et === null)   return ['?', 'et-?'];
-    return [`0x${et.toString(16).padStart(4,'0')}`, 'et-wlan'];
-  }
-
-  function addRow(frame) {
-    ensureTable();
-    const tbody = table.tBodies[0];
-    const tr = document.createElement('tr');
-    const t = new Date().toLocaleTimeString();
-    const [etLabel, etCls] = classifyEtherType(frame.ether_type);
-    tr.innerHTML = `
-      <td>${t}</td>
-      <td>${frame.sec}</td>
-      <td>${frame.usec}</td>
-      <td>${frame.len}</td>
-      <td class="${etCls}">${etLabel}</td>
-      <td class="hex">${escapeHtml(frame.hex)}</td>`;
-    tbody.insertBefore(tr, tbody.firstChild);
-    while (tbody.rows.length > MAX_ROWS) tbody.deleteRow(MAX_ROWS);
-
-    total++;
-    nTotal.textContent = total;
-    nLast.textContent  = t;
-    const now = Date.now();
-    recent.push(now);
-    while (recent.length && recent[0] < now - 60000) recent.shift();
-    nRate.textContent = recent.length;
-  }
-
-  // ----- MQTT toggle -----
-  const mqttBtn = document.getElementById('mqtt-toggle');
-  const mqttStateText = document.getElementById('mqtt-state-text');
-  let mqttState = { enabled: false, available: false };
-
-  function renderMqttState() {
-    mqttBtn.classList.toggle('on', mqttState.enabled && mqttState.available);
-    mqttBtn.disabled = !mqttState.available;
-    if (!mqttState.available) {
-      mqttStateText.textContent = 'unavailable';
-      mqttBtn.title = 'Bridge was started with --no-mqtt — no broker client active.';
-    } else {
-      mqttStateText.textContent = mqttState.enabled ? 'on' : 'off (local)';
-      mqttBtn.title = mqttState.enabled
-        ? 'Frames are being published to cits1.opentrafficmap.org. Click to switch to local.'
-        : 'Frames stay local. Click to publish to opentrafficmap.org.';
+    if(s.expanded){
+      for(const f of s.recentFrames){
+        const ft=timeFmt.format(new Date((f.sec||0)*1000+Math.floor((f.usec||0)/1000)));
+        html+=`<div class="frow">
+          <div class="frow-time">${esc(ft)}</div>
+          <div class="frow-et ${etCls(f.ether_type)}">${etLbl(f.ether_type)}</div>
+          <div class="frow-len">${f.len||0}</div>
+          <div class="frow-hex">${esc(f.hex||'')}</div>
+        </div>`;
+      }
     }
   }
-
-  mqttBtn.addEventListener('click', () => {
-    if (!mqttState.available) return;
-    const want = !mqttState.enabled;
-    mqttBtn.disabled = true;
-    fetch('/api/mqtt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: want }),
+  el.innerHTML=html;
+  el.querySelectorAll('.srow[data-key]').forEach(row=>
+    row.addEventListener('click',()=>{
+      const s=stations.get(row.dataset.key);
+      if(s){s.expanded=!s.expanded;renderStationList();}
     })
-    .then(r => r.json())
-    .then(s => { mqttState = s; renderMqttState(); })
-    .catch(() => { renderMqttState(); });
+  );
+}
+
+// ─── MAC table ────────────────────────────────────────────────────────────
+function sortMac(col){
+  if(macSortCol===col)macSortAsc=!macSortAsc;else{macSortCol=col;macSortAsc=false;}
+  renderMacTable();
+}
+function renderMacTable(){
+  const filter=(document.getElementById('mac-search')?.value||'').toLowerCase();
+  const tbody=document.getElementById('mac-tbody'); if(!tbody)return;
+  let rows=[...macEntries.values()];
+  if(filter)rows=rows.filter(e=>e.mac.includes(filter)||[...e.types].join().toLowerCase().includes(filter));
+  rows.sort((a,b)=>{
+    let av,bv;
+    switch(macSortCol){
+      case'mac':av=a.mac;bv=b.mac;break;
+      case'type':av=[...a.types].join();bv=[...b.types].join();break;
+      case'station':av=a.stationType;bv=b.stationType;break;
+      case'first':av=a.firstSeen;bv=b.firstSeen;break;
+      case'count':av=a.count;bv=b.count;break;
+      default:av=a.lastSeen;bv=b.lastSeen;
+    }
+    return macSortAsc?(av>bv?1:-1):(av<bv?1:-1);
+  });
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="7" id="mac-empty">No entries.</td></tr>';return;}
+  tbody.innerHTML=rows.map(e=>{
+    const types=[...e.types].map(t=>`<span style="color:${typeConf(t).color}">${typeConf(t).short}</span>`).join(' ');
+    const pos=e.lastLat!==null?`${e.lastLat.toFixed(5)}, ${e.lastLon.toFixed(5)}`:'—';
+    return`<tr>
+      <td class="mac-addr">${esc(e.mac)}</td>
+      <td class="mac-types">${types}</td>
+      <td style="color:#8b949e">${esc(e.stationType)}</td>
+      <td style="color:#555">${fmtTime(e.firstSeen)}</td>
+      <td style="color:#555">${fmtTime(e.lastSeen)}</td>
+      <td style="color:#58a6ff">${e.count}</td>
+      <td style="color:#555">${esc(pos)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportMacCsv(){
+  const rows=[['MAC','Typen','Station','Erstes Signal','Letztes Signal','Frames','Lat','Lon']];
+  for(const e of macEntries.values()){
+    rows.push([e.mac,[...e.types].join(';'),e.stationType,
+               new Date(e.firstSeen).toISOString(),new Date(e.lastSeen).toISOString(),
+               e.count,e.lastLat??'',e.lastLon??'']);
+  }
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
+  a.download=`macs_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.csv`;
+  a.click();
+}
+
+// ─── Batch log refresh ────────────────────────────────────────────────────
+const pendingFrames=[]; let logDirty=false;
+function scheduleLog(){
+  if(logDirty)return; logDirty=true;
+  setTimeout(()=>{
+    logDirty=false;
+    if(pendingFrames.length){
+      const batch=pendingFrames.splice(0);
+      for(const f of batch){updateStation(f);updateMac(f);updateTypeCounts(f.msg_type||'UNKNOWN');}
+    }
+    renderStationList();
+  },300);
+}
+
+// ─── Header elements ──────────────────────────────────────────────────────
+const elNode=document.getElementById('node');
+const elTotal=document.getElementById('ntotal');
+const elRate=document.getElementById('nrate');
+const elBytes=document.getElementById('nbytes');
+const elLast=document.getElementById('last');
+const elSerial=document.getElementById('serial-dot');
+const elSerLbl=document.getElementById('serial-lbl');
+const connEl=document.getElementById('conn');
+const mqttBtn=document.getElementById('mqtt-toggle');
+const mqttTxt=document.getElementById('mqtt-state-text');
+let total=0,lastBytesN=0,lastBytesT=Date.now();
+const recent=[];
+
+// ─── MQTT toggle ──────────────────────────────────────────────────────────
+let mqttState={enabled:false,available:false};
+function renderMqttState(){
+  const on=mqttState.enabled&&mqttState.available;
+  mqttBtn.classList.toggle('on',on);
+  mqttBtn.disabled=!mqttState.available;
+  mqttTxt.textContent=!mqttState.available?'—':mqttState.enabled?'on':'off';
+  mqttBtn.title=!mqttState.available?'No broker connected.':
+    mqttState.enabled?'Frames werden übertragen. Klicken zum Deaktivieren.':
+    'Frames bleiben lokal. Klicken zum Aktivieren.';
+}
+mqttBtn.addEventListener('click',()=>{
+  if(!mqttState.available)return;
+  mqttBtn.disabled=true;
+  fetch('/api/mqtt',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({enabled:!mqttState.enabled})})
+    .then(r=>r.json()).then(s=>{mqttState=s;renderMqttState();})
+    .catch(()=>{mqttBtn.disabled=false;});
+});
+
+// ─── Broker status ────────────────────────────────────────────────────────
+function renderBrokers(list){
+  const el=document.getElementById('broker-list'); if(!el)return;
+  if(!list||!list.length){el.innerHTML='<span style="color:#555;font-size:12px">No broker configured.</span>';return;}
+  el.innerHTML=list.map(b=>`<div class="broker-row">
+    <div class="broker-dot${b.connected?' up':''}"></div>
+    <span style="font-size:12px">${esc(b.url||'?')}</span>
+    <span style="color:#555;font-size:11px">${b.connected?'connected':'disconnected'}</span>
+  </div>`).join('');
+}
+
+// ─── PCAP recording ───────────────────────────────────────────────────────
+let recState={recording:false,file:'',frames:0};
+function renderRecState(s){
+  recState=s||recState;
+  const el=document.getElementById('rec-status');
+  const recBtn=document.getElementById('rec-btn');
+  const startBtn=document.getElementById('rec-start-btn');
+  const stopBtn=document.getElementById('rec-stop-btn');
+  if(recState.recording){
+    if(el)el.innerHTML=`<span style="color:#f47979">⏺ Recording active</span>  ${esc(recState.file)}  <b>${recState.frames}</b> frames`;
+    if(recBtn){recBtn.classList.add('rec');recBtn.textContent='⏹ Recording...';}
+    if(startBtn)startBtn.disabled=true;
+    if(stopBtn)stopBtn.disabled=false;
+  } else {
+    const info=recState.frames>0?`Last recording: ${esc(recState.file||'—')} (${recState.frames} frames)`:'No active recording.';
+    if(el)el.innerHTML=`<span style="color:#555">${info}</span>`;
+    if(recBtn){recBtn.classList.remove('rec');recBtn.textContent='⏺ Record';}
+    if(startBtn)startBtn.disabled=false;
+    if(stopBtn)stopBtn.disabled=true;
+  }
+}
+function startRecording(filename){
+  fetch('/api/record',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'start',file:filename||''})})
+    .then(r=>r.json()).then(renderRecState).catch(console.error);
+}
+function stopRecording(){
+  fetch('/api/record',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'stop'})})
+    .then(r=>r.json()).then(renderRecState).catch(console.error);
+}
+document.getElementById('rec-btn').addEventListener('click',()=>{
+  recState.recording?stopRecording():startRecording();
+});
+
+// ─── SSE ──────────────────────────────────────────────────────────────────
+function connect(){
+  const es=new EventSource('/events');
+  es.onopen=()=>{connEl.textContent='connected';connEl.className='up';};
+  es.onerror=()=>{connEl.textContent='reconnecting...';connEl.className='down';};
+
+  es.addEventListener('hello',e=>{
+    const d=JSON.parse(e.data);
+    elNode.textContent=d.node_id||'?';
+    if(d.mqtt){mqttState=d.mqtt;renderMqttState();}
+    if(d.serial)applySerial(d.serial);
+    if(d.stats)applyStats(d.stats);
+    if(d.brokers)renderBrokers(d.brokers);
+    if(d.record)renderRecState(d.record);
   });
 
-  // ----- SSE -----
-  function connect() {
-    const es = new EventSource('/events');
-    es.onopen = () => { conn.textContent = 'connected'; conn.className = 'up'; };
-    es.onerror = () => { conn.textContent = 'reconnecting…'; conn.className = 'down'; };
-    es.addEventListener('hello', e => {
-      const d = JSON.parse(e.data);
-      nNode.textContent = d.node_id || '?';
-      if (d.mqtt) { mqttState = d.mqtt; renderMqttState(); }
-    });
-    es.addEventListener('mqtt_state', e => {
-      mqttState = JSON.parse(e.data);
-      renderMqttState();
-    });
-    es.addEventListener('frame', e => {
-      const f = JSON.parse(e.data);
-      addRow(f);
-      if (typeof f.lat === 'number' && typeof f.lon === 'number' && f.gn_addr) {
-        onPositionFrame(f);
-      }
-    });
+  es.addEventListener('frame',e=>{
+    const f=JSON.parse(e.data);
+    total++;
+    const now=Date.now();
+    elTotal.textContent=total;
+    elLast.textContent=new Date(now).toLocaleTimeString();
+    recent.push(now);
+    while(recent.length&&recent[0]<now-60_000)recent.shift();
+    elRate.textContent=recent.length;
+    tickSparkline(now);
+    if(f.lat!==undefined&&f.lon!==undefined)onPositionFrame(f);
+    pendingFrames.push(f);
+    scheduleLog();
+  });
+
+  es.addEventListener('stats',e=>applyStats(JSON.parse(e.data)));
+  es.addEventListener('mqtt_state',e=>{mqttState=JSON.parse(e.data);renderMqttState();});
+  es.addEventListener('serial_state',e=>applySerial(JSON.parse(e.data)));
+  es.addEventListener('broker_status',e=>renderBrokers(JSON.parse(e.data)));
+  es.addEventListener('record_state',e=>renderRecState(JSON.parse(e.data)));
+}
+
+function applyStats(s){
+  if(!s||!Object.keys(s).length)return;
+  document.getElementById('st-frames').textContent=s.frames||0;
+  document.getElementById('st-rate').textContent=(s.rate||0)+' /min';
+  document.getElementById('st-bytes').textContent=fmtBytes(s.bytes||0);
+  if(s.uptime_s!==undefined)document.getElementById('st-uptime').textContent=fmtUptime(s.uptime_s);
+  const now=Date.now(),dt=(now-lastBytesT)/1000;
+  if(dt>0&&s.bytes!==undefined){
+    const bps=(s.bytes-lastBytesN)/dt;
+    elBytes.textContent=bps>1024?(bps/1024).toFixed(1)+' KB/s':bps.toFixed(0)+' B/s';
+    lastBytesN=s.bytes;lastBytesT=now;
   }
-  renderMqttState();
-  connect();
+}
+function applySerial(s){
+  const up=s&&s.connected;
+  elSerial.className=up?'up':'down';
+  elSerLbl.textContent=up?(s.port||'USB'):'disconnected';
+}
+
+renderMqttState();
+renderRecState();
+connect();
 </script>
 </body>
 </html>
