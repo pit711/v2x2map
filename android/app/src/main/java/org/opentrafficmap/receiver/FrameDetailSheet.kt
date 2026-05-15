@@ -31,7 +31,9 @@ object FrameDetailSheet {
 
     private fun titleFor(ctx: Context, f: Frame): String = when (f.msgType) {
         ItsG5Decoder.MsgType.CAM     -> ctx.getString(R.string.detail_type_cam)
-        ItsG5Decoder.MsgType.DENM    -> ctx.getString(R.string.detail_type_denm)
+        ItsG5Decoder.MsgType.DENM    -> f.denmCause
+            ?.let { "DENM – ${it.label()}" }
+            ?: ctx.getString(R.string.detail_type_denm)
         ItsG5Decoder.MsgType.MAPEM   -> ctx.getString(R.string.detail_type_mapem)
         ItsG5Decoder.MsgType.SPATEM  -> ctx.getString(R.string.detail_type_spatem)
         ItsG5Decoder.MsgType.IVIM    -> ctx.getString(R.string.detail_type_ivim)
@@ -76,6 +78,13 @@ object FrameDetailSheet {
         if (f.headingDeg != null)
             row(ctx.getString(R.string.detail_label_heading),
                 "%.1f°  %s".format(f.headingDeg, compassPoint(f.headingDeg)))
+        if (f.denmCause != null) {
+            val sub = f.denmCause.sublabel()
+            val causeStr = "${f.denmCause.causeCode} – ${f.denmCause.label()}" +
+                (if (sub.isNotEmpty()) "  $sub" else "") +
+                " / ${f.denmCause.subCauseCode}"
+            row(ctx.getString(R.string.detail_label_cause), causeStr)
+        }
 
         return sb.toString().trimEnd()
     }

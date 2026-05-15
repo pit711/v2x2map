@@ -147,6 +147,7 @@
     <string name="detail_label_position">Position</string>
     <string name="detail_label_speed">Speed</string>
     <string name="detail_label_heading">Heading</string>
+    <string name="detail_label_cause">Cause</string>
 
     <!-- Log group summaries -->
     <string name="log_hazard">Hazard warning</string>

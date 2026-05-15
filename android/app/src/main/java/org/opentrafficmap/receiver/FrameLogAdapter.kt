@@ -191,7 +191,11 @@ class FrameLogAdapter(
                 SpatTemParser.Phase.GREEN  -> context.getString(R.string.log_phase_green)
                 else                       -> context.getString(R.string.log_phase_unknown)
             }
-            ItsG5Decoder.MsgType.DENM  -> context.getString(R.string.log_hazard)
+            ItsG5Decoder.MsgType.DENM  -> {
+                val cause = f?.denmCause
+                if (cause != null) cause.label() + cause.sublabel().let { if (it.isNotEmpty()) " $it" else "" }
+                else context.getString(R.string.log_hazard)
+            }
             ItsG5Decoder.MsgType.MAPEM -> context.getString(R.string.log_intersection)
             else -> f?.let { "len=${it.len}" } ?: "—"
         }
