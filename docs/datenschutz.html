@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V2X2MAP — Datenschutzerklärung</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #1a1a1a; }
+  h1 { font-size: 1.6rem; } h2 { font-size: 1.15rem; margin-top: 1.8rem; }
+  code { background: #f0f0f0; padding: 0 .25rem; border-radius: 3px; }
+  .muted { color: #666; font-size: .9rem; }
+</style>
+</head>
+<body>
+<h1>Datenschutzerklärung — V2X2MAP</h1>
+<p class="muted">Stand: 26.05.2026</p>
+
+<p>V2X2MAP („die App“) zeigt ITS-G5-/V2X-Funkmeldungen an, die von einem externen
+ESP32-C5-Empfänger empfangen werden. Diese Erklärung beschreibt, welche Daten die App
+verwendet und wohin sie gehen.</p>
+
+<h2>Kurzfassung</h2>
+<p>Die App arbeitet vollständig auf deinem Gerät. Sie benötigt kein Konto, enthält keine
+Werbung und keine Analyse- oder Tracking-Dienste von Dritten. Es werden keine
+personenbezogenen Daten an den Entwickler gesendet.</p>
+
+<h2>Standortdaten</h2>
+<p>Mit deiner Erlaubnis nutzt die App den GPS-Standort deines Geräts, um die Karte auf deine
+Position zu zentrieren und die Entfernung zu empfangenen V2X-Meldungen zu berechnen. Dein
+Standort wird <strong>ausschließlich auf dem Gerät</strong> verarbeitet und nicht an den
+Entwickler oder Dritte übertragen. Er wird nicht über die laufende Sitzung hinaus
+gespeichert, es sei denn, du aktivierst die optionalen Funktionen „GPS-Spur“ oder die
+Aufnahme – diese speichern Daten im App-Speicher deines Geräts.</p>
+
+<h2>Optionale MQTT-Weiterleitung</h2>
+<p>Die MQTT-Weiterleitung ist <strong>standardmäßig deaktiviert</strong>. Wenn du sie
+aktivierst, veröffentlicht die App die über Funk empfangenen V2X-Meldungen zusammen mit
+einer Gerätekennung, die aus der Hardware-Adresse (MAC) des angeschlossenen Empfängers
+abgeleitet wird, an den von dir konfigurierten MQTT-Broker. Der Standard-Broker wird vom
+OpenTrafficMap-Projekt betrieben (<code>cits1.opentrafficmap.org</code>); du kannst einen
+eigenen Broker eintragen oder die Funktion deaktiviert lassen. Bei den V2X-Meldungen handelt
+es sich um öffentlich gesendete Verkehrsdaten anderer Stationen, nicht um deine
+personenbezogenen Daten. Die Verbindung erfolgt über TLS.</p>
+
+<h2>Hardware-Zugriff (USB / Bluetooth)</h2>
+<p>Die App kommuniziert über USB-OTG oder Bluetooth LE mit dem ESP32-C5-Empfänger,
+ausschließlich um die empfangenen Funk-Frames zu lesen und während der Einrichtung die
+Firmware zu flashen. Über diese Schnittstellen werden – abgesehen von der oben beschriebenen
+optionalen MQTT-Funktion – keine Daten vom Gerät versendet.</p>
+
+<h2>Auf deinem Gerät gespeicherte Daten</h2>
+<p>Aufnahmen, die du erstellst (PCAP-Mitschnitte, CSV-Reichweiten-/Sitzungsprotokolle,
+GPS-Spuren), werden im privaten App-Speicher deines Geräts abgelegt. Du verwaltest sie und
+kannst sie jederzeit löschen. Sie werden niemals automatisch hochgeladen.</p>
+
+<h2>Berechtigungen</h2>
+<ul>
+  <li><strong>Standort</strong> — Kartenzentrierung und Entfernungsberechnung (auf dem Gerät).</li>
+  <li><strong>USB</strong> — Kommunikation mit dem ESP32-C5-Empfänger.</li>
+  <li><strong>Bluetooth</strong> — optionale drahtlose Verbindung zum Empfänger.</li>
+  <li><strong>Benachrichtigungen / Vordergrunddienst</strong> — Weiterempfang, während die App im Hintergrund läuft.</li>
+  <li><strong>Internet</strong> — Laden der Kartenkacheln und, falls aktiviert, MQTT-Weiterleitung.</li>
+</ul>
+
+<h2>Kinder</h2>
+<p>Die App richtet sich nicht an Kinder und erhebt keine personenbezogenen Daten.</p>
+
+<h2>Kontakt</h2>
+<p>Fragen zu dieser Erklärung: <a href="mailto:peterholzhauser@gmail.com">peterholzhauser@gmail.com</a></p>
+</body>
+</html>
