@@ -3,6 +3,7 @@
 Plug a $20 ESP32-C5 dev board into your phone, drive somewhere with modern infrastructure, watch the CAMs, DENMs and SPATEMs roll in.
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-0.3.0-brightgreen.svg)
 
 <table>
 <tr>
@@ -12,6 +13,67 @@ Plug a $20 ESP32-C5 dev board into your phone, drive somewhere with modern infra
 <td><img src="docs/screenshot_04_settings_bot.png" alt="Settings 3"  width="160"/></td>
 </tr>
 </table>
+
+---
+
+## What's new in 0.3.0
+
+### 🚗 Drive Mode *(experimental — feedback welcome!)*
+
+A full-screen animated HUD that replaces the map while you're on the road. Tap the car icon FAB to activate.
+
+- Perspective road view animates at your real GPS speed
+- **Traffic light card** appears automatically when a signalised intersection is within 300–400 m ahead — shows live phase (R/Y/G), countdown in seconds and distance
+- **Nearby vehicle indicators** drawn in the road perspective: amber silhouette for vehicles ahead, red with headlight glow for oncoming traffic, badge for close-following vehicles
+- **Hazard banner** when a DENM event is detected within 500 m in your direction of travel
+- OTM Live Feed activates automatically when Drive Mode is switched on
+
+> **Drive Mode is an early-stage prototype.** The traffic-light detection, vehicle radar and road visuals are functional but not yet fully polished. If you test it in the field, please open an issue or send feedback — every report helps shape the next iteration. Pull requests are very welcome.
+
+---
+
+### 📡 OTM Live Feed
+
+Stream live V2X data from [opentrafficmap.org](https://opentrafficmap.org) directly onto the map — no hardware required.
+
+- Connects to `wss://opentrafficmap.org/ws_ext` via WebSocket with automatic gzip decompression and reconnect
+- Shows vehicles, RSUs, trams, buses, cyclists, pedestrians and traffic lights from the OTM network worldwide
+- **Visually distinct:** OTM markers use an amber colour scheme so they are immediately distinguishable from your own locally received ITS-G5 frames
+- Toggle with the RSS icon FAB; activates automatically in Drive Mode
+- Parses `delta`, `snapshot` and `traffic-light-map-batch` (MAPEM) messages
+
+---
+
+### 📤 PCAP Upload
+
+Replay recorded `.pcap` files to any configured MQTT broker — even offline, without the ESP32-C5 hardware.
+
+- Tap the upload icon ↑ in the main toolbar
+- File list sorted newest-first with date and file size
+- Live progress card with cancel button
+- Reuses the broker addresses and node-ID you already configured in Settings
+- Mirrors the workflow of the included `pcap-replay.py` Python script
+
+---
+
+### 🎨 UI Overhaul
+
+- Settings screen: every section now sits inside a **Material 3 filled card** — much cleaner visual hierarchy
+- Speed overlay and SPAT traffic-light pill now use **rounded backgrounds** instead of hard-coded flat rectangles
+- Controls bar has a subtle elevated surface so it clearly separates from the map
+- Log header improved with letter-spacing and monospace stats
+
+---
+
+### 🛠 DevOps — Demo Mode
+
+Hidden in **About → DevOps**: generate realistic simulated ITS-G5 frames within the current map viewport.
+
+- 7 vehicles moving naturally at up to 58 km/h, 2 SPATEM RSUs cycling through all phases
+- Frames are structurally valid 802.11p/GeoNetworking/BTP-B payloads that `ItsG5Decoder` fully decodes
+- Goes through the identical `handleFrames()` pipeline — recording, MQTT forwarding, frame log and Geiger counter all work on demo data
+
+---
 
 ## Acknowledgements
 
@@ -44,8 +106,6 @@ The board supports 5.9 GHz IEEE 802.11p out of the box; the firmware drives it a
 - **Amazon without external Antenna:** [Waveshare ESP32-C5-WROOM-1 dev board](https://amzn.to/43qIJ9h) *
 - **AliExpress:** [Waveshare Official Store](https://s.click.aliexpress.com/e/_c3pGqqLN) *
 
-
-
 ---
 
 ## Features
@@ -53,7 +113,11 @@ The board supports 5.9 GHz IEEE 802.11p out of the box; the firmware drives it a
 | Feature | Description |
 |---|---|
 | **Live map** | 5 switchable tile layers: Standard, Dark, Satellite, ÖPNV, Humanitarian |
-| **Grouped frame log** | One row per station (MAC); expandable to last 20 frames; shows type icon, speed, distance, 🔒/🔓 secured |
+| **OTM Live Feed** | Real-time V2X data from opentrafficmap.org overlaid in amber — no hardware needed |
+| **Drive Mode** *(beta)* | Animated HUD with traffic-light card, vehicle radar and DENM banner |
+| **PCAP Upload** | Replay recorded `.pcap` files to MQTT — offline, without hardware |
+| **Demo Mode** | Realistic simulated ITS-G5 frames for testing all app features |
+| **Grouped frame log** | One row per station (MAC); expandable to last 20 frames; type icon, speed, distance, 🔒/🔓 |
 | **CAM markers** | One marker per vehicle, updated in-place with baked-in heading + speed label |
 | **Compass mode** | Bearing-up FAB rotates the map to keep your heading at the top |
 | **Own GPS track** | Optional blue polyline traces your route |
@@ -63,7 +127,6 @@ The board supports 5.9 GHz IEEE 802.11p out of the box; the firmware drives it a
 | **Offline maps** | OSMdroid tile cache up to 600 MB |
 | **PCAP recording** | One tap records to standard `.pcap`; open directly in Wireshark (link type 105 = IEEE 802.11) |
 | **Multi-broker MQTT** | One input field per broker, add/remove with + / 🗑; per-type message filter |
-| **Full i18n** | English default, German for German-locale devices — all UI, errors and notifications |
 
 ---
 
@@ -82,10 +145,9 @@ The board supports 5.9 GHz IEEE 802.11p out of the box; the firmware drives it a
                                         | Python bridge   |
                                         +--------+--------+
                                                  |
-                                                 | optional
-                                                 v
-                                          MQTT (cits1.opentrafficmap.org
-                                                 or your own)
+                                    MQTT (optional)  |  OTM WebSocket
+                                                 v         v
+                                  cits1.opentrafficmap.org / your own broker
 ```
 
 ---
@@ -158,6 +220,22 @@ python its_g5_bridge.py --port COMx --node-id <mac-without-colons>
 Dashboard at `http://127.0.0.1:8080`. Default MQTT broker: `mqtts://cits1.opentrafficmap.org:8883`.
 
 </details>
+
+---
+
+## Changelog
+
+### 0.3.0
+- Drive Mode (experimental HUD with traffic lights, vehicle radar, DENM banner)
+- OTM Live Feed via WebSocket (real-time data from opentrafficmap.org)
+- PCAP Upload to MQTT without hardware
+- Demo Mode for offline testing
+- Material 3 card-based Settings UI
+- Gradle upgraded to 8.9 (Java 21 compatibility)
+- Added OkHttp dependency for WebSocket support
+
+### 0.2.3
+- Initial public release
 
 ---
 
