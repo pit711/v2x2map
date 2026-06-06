@@ -8,9 +8,12 @@ import androidx.appcompat.app.AppCompatActivity
 import org.opentrafficmap.receiver.databinding.ActivityAboutBinding
 
 class AboutActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityAboutBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val binding = ActivityAboutBinding.inflate(layoutInflater)
+        binding = ActivityAboutBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
@@ -32,5 +35,19 @@ class AboutActivity : AppCompatActivity() {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.github_url))))
             } catch (_: Exception) {}
         }
+
+        updateDemoButton()
+        binding.btnDemo.setOnClickListener {
+            val newState = !SettingsBus.demoModeActive
+            SettingsBus.demoModeActive = newState
+            SettingsBus.demoModeChanged(newState)
+            updateDemoButton()
+        }
+    }
+
+    private fun updateDemoButton() {
+        binding.btnDemo.text = getString(
+            if (SettingsBus.demoModeActive) R.string.demo_stop else R.string.demo_start
+        )
     }
 }

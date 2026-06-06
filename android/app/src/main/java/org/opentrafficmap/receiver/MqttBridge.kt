@@ -22,6 +22,7 @@ import javax.net.ssl.SSLContext
 class MqttBridge(
     private val nodeId: String,
     private val brokerUri: String = "ssl://cits1.opentrafficmap.org:8883",
+    private val clientIdSuffix: String = "",
 ) {
     private val tag = "MqttBridge"
     private val packetTopic = "its/$nodeId/packet"
@@ -34,7 +35,7 @@ class MqttBridge(
 
     fun start() {
         if (client != null) return
-        val c = MqttAsyncClient(brokerUri, "android-bridge-$nodeId", MemoryPersistence())
+        val c = MqttAsyncClient(brokerUri, "android-bridge-$nodeId$clientIdSuffix", MemoryPersistence())
         c.setCallback(object : MqttCallback {
             override fun connectionLost(cause: Throwable?) {
                 Log.w(tag, "connection lost", cause)

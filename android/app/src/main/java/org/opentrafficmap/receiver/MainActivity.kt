@@ -27,18 +27,25 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import org.opentrafficmap.receiver.databinding.ActivityMainBinding
+import androidx.lifecycle.lifecycleScope
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.tileprovider.tilesource.ITileSource
 import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.tileprovider.tilesource.XYTileSource
+import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.LinkedList
+import kotlin.math.abs
+import kotlin.math.cos
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,6 +60,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fused: FusedLocationProviderClient
     private lateinit var markers: MarkerLayer
     private lateinit var geiger: GeigerCounter
+
+    // OTM live data
+    private lateinit var otmLayer: OtmLiveLayer
+    private var otmClient: OtmWebSocketClient? = null
+    @Volatile private var otmEnabled = false
+    private val otmLightPoints = HashMap<String, OtmPoint>()   // mac → latest traffic-light point
+
+    // Demo mode
+    private var demoGenerator: DemoFrameGenerator? = null
+
+    // Drive mode
+    private var driveModeEnabled = false
+    private var otmAutoStartedByDriveMode = false
+    private val recentCamFrames = HashMap<Long, Frame>(64)  // stationId → latest CAM
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val rateWindow = LinkedList<Long>()
@@ -118,6 +139,7 @@ class MainActivity : AppCompatActivity() {
             if (compassMode && loc.hasBearing() && ::binding.isInitialized)
                 runOnUiThread { binding.map.mapOrientation = -loc.bearing }
             updateSpatLight(loc)
+            if (driveModeEnabled) runOnUiThread { updateDriveMode() }
         }
     }
 
@@ -153,8 +175,9 @@ class MainActivity : AppCompatActivity() {
         followEnabled   = Prefs.followEnabled(this)
         ownTrackEnabled = Prefs.ownTrackEnabled(this)
         compassMode     = Prefs.compassMode(this)
-        markers = MarkerLayer(binding.map, this)
-        geiger  = GeigerCounter(this)
+        markers  = MarkerLayer(binding.map, this)
+        otmLayer = OtmLiveLayer(binding.map, this)
+        geiger   = GeigerCounter(this)
         if (Prefs.audioFeedback(this)) geiger.start()
 
         setSupportActionBar(binding.toolbar)
@@ -180,10 +203,25 @@ class MainActivity : AppCompatActivity() {
         binding.fabLocate.setOnClickListener { onLocateClick() }
         binding.fabLayers.setOnClickListener { showLayerPicker() }
         binding.fabCompass.setOnClickListener { toggleCompassMode() }
+        binding.fabOtmLive.setOnClickListener { toggleOtm() }
+        binding.fabDriveMode.setOnClickListener { toggleDriveMode() }
         binding.logCollapseBtn.setOnClickListener { toggleLogPanel() }
 
         // Reflect saved compass mode on FAB immediately
         applyCompassFabTint()
+        applyOtmFabTint()
+
+        // Refilter OTM markers whenever the visible map area changes
+        binding.map.addMapListener(object : MapListener {
+            override fun onScroll(event: ScrollEvent): Boolean {
+                if (otmEnabled) otmLayer.refilter(expandedBoundingBox())
+                return false
+            }
+            override fun onZoom(event: ZoomEvent): Boolean {
+                if (otmEnabled) otmLayer.refilter(expandedBoundingBox())
+                return false
+            }
+        })
 
         applyKeepScreenOn()
         wireSettingsBus()
@@ -200,6 +238,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onMenuItemClick(item: android.view.MenuItem): Boolean = when (item.itemId) {
         R.id.action_settings -> { startActivity(Intent(this, SettingsActivity::class.java)); true }
+        R.id.action_upload   -> { startActivity(Intent(this, PcapUploadActivity::class.java)); true }
         else -> false
     }
 
@@ -225,8 +264,12 @@ class MainActivity : AppCompatActivity() {
         if (::locationOverlay.isInitialized) locationOverlay.disableMyLocation()
         if (::fused.isInitialized) stopLocationUpdates()
         if (::geiger.isInitialized) geiger.stop()
+        otmClient?.stop(); if (::otmLayer.isInitialized) otmLayer.clear()
+        demoGenerator?.stop()
+        if (::binding.isInitialized) binding.driveView.stop()
         SettingsBus.liveRecorder = null
         SettingsBus.liveBtController = null
+        SettingsBus.onDemoModeChanged = null
         mainHandler.removeCallbacksAndMessages(null)
     }
 
@@ -274,6 +317,11 @@ class MainActivity : AppCompatActivity() {
             if (on) ensureLocation()
         }
         SettingsBus.onResetAll = SettingsBus.OnResetAll { resetAll() }
+        SettingsBus.onDemoModeChanged = SettingsBus.OnDemoModeChanged { on ->
+            if (on) startDemoMode() else stopDemoMode()
+        }
+        // Restore demo mode if activity was recreated while it was running
+        if (SettingsBus.demoModeActive) startDemoMode()
     }
 
     // ------------------------------------------ Keep screen on
@@ -656,7 +704,17 @@ class MainActivity : AppCompatActivity() {
                     f.spatPhase ?: SpatTemParser.Phase.UNKNOWN, System.currentTimeMillis())
                 lastLocation?.let { updateSpatLight(it) }
             }
+
+            // Cache latest CAM position for drive-mode vehicle display
+            if (f.msgType == ItsG5Decoder.MsgType.CAM && f.latLon != null && f.stationId != null) {
+                recentCamFrames[f.stationId] = f
+                if (recentCamFrames.size > 250) {
+                    val cutoff = System.currentTimeMillis() - 30_000L
+                    recentCamFrames.entries.removeAll { it.value.sec * 1000L < cutoff }
+                }
+            }
         }
+        if (driveModeEnabled) updateDriveMode()
     }
 
     private fun updateSpatLight(loc: Location) {
@@ -724,6 +782,222 @@ class MainActivity : AppCompatActivity() {
             ReceiverForegroundService.instance?.updateStats(totalFrames.toInt(), rate)
             mainHandler.postDelayed(this, 1_000)
         }
+    }
+
+    // --------------------------------------------------------- Drive Mode
+
+    private fun toggleDriveMode() {
+        driveModeEnabled = !driveModeEnabled
+        val cs = ConstraintSet().also { it.clone(binding.root) }
+        if (driveModeEnabled) {
+            // Extend DriveView to fill entire area below controls
+            cs.setGuidelinePercent(R.id.logSplit, 1.0f)
+            // Move drive FAB to bottom-right corner (stays visible over DriveView)
+            cs.connect(R.id.fabDriveMode, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, dp(24))
+            cs.connect(R.id.fabDriveMode, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, dp(16))
+            cs.clear(R.id.fabDriveMode, ConstraintSet.TOP)
+            cs.applyTo(binding.root)
+
+            binding.map.visibility          = View.GONE
+            binding.logHeader.visibility    = View.GONE
+            binding.log.visibility          = View.GONE
+            binding.emptyLog.visibility     = View.GONE
+            binding.spatLight.visibility    = View.GONE
+            binding.speedOverlay.visibility = View.GONE
+            binding.fabLocate.visibility    = View.GONE
+            binding.fabLayers.visibility    = View.GONE
+            binding.fabCompass.visibility   = View.GONE
+            binding.fabOtmLive.visibility   = View.GONE
+            binding.driveView.visibility    = View.VISIBLE
+            binding.driveView.start()
+
+            if (!otmEnabled) { otmAutoStartedByDriveMode = true; startOtm(); otmEnabled = true; applyOtmFabTint() }
+            ensureLocation()
+            updateDriveMode()
+            toast(getString(R.string.drive_mode_on))
+        } else {
+            // Restore guideline and FAB chain
+            cs.setGuidelinePercent(R.id.logSplit, 0.70f)
+            cs.connect(R.id.fabDriveMode, ConstraintSet.BOTTOM, R.id.fabOtmLive, ConstraintSet.TOP, dp(4))
+            cs.connect(R.id.fabDriveMode, ConstraintSet.END, R.id.map, ConstraintSet.END, dp(16))
+            cs.clear(R.id.fabDriveMode, ConstraintSet.TOP)
+            cs.applyTo(binding.root)
+
+            binding.driveView.stop()
+            binding.driveView.visibility  = View.GONE
+            binding.map.visibility        = View.VISIBLE
+            binding.logHeader.visibility  = View.VISIBLE
+            binding.fabLocate.visibility  = View.VISIBLE
+            binding.fabLayers.visibility  = View.VISIBLE
+            binding.fabCompass.visibility = View.VISIBLE
+            binding.fabOtmLive.visibility = View.VISIBLE
+            if (logExpanded) {
+                binding.log.visibility = View.VISIBLE
+                if (adapter.itemCount == 0) binding.emptyLog.visibility = View.VISIBLE
+            }
+            if (otmAutoStartedByDriveMode) {
+                otmAutoStartedByDriveMode = false; stopOtm(); otmEnabled = false; applyOtmFabTint()
+            }
+            toast(getString(R.string.drive_mode_off))
+        }
+        applyDriveFabTint()
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
+
+    private fun applyDriveFabTint() {
+        if (!::binding.isInitialized) return
+        binding.fabDriveMode.backgroundTintList = if (driveModeEnabled)
+            ColorStateList.valueOf(0xFF1976D2.toInt())   // blue when active
+        else
+            defaultBtnTintUsb
+    }
+
+    private fun updateDriveMode() {
+        if (!driveModeEnabled || !::binding.isInitialized) return
+        binding.driveView.speedKmh = lastSpeedMps * 3.6f
+        val loc = lastLocation
+        if (loc != null) {
+            binding.driveView.updateLight(findNearestDriveLight(loc))
+            binding.driveView.updateVehicles(findNearbyDriveVehicles(loc))
+            binding.driveView.setCondition(findActiveCondition(loc))
+        }
+    }
+
+    private fun findNearestDriveLight(loc: Location): DriveView.LightData? {
+        val bearing = if (loc.hasBearing()) loc.bearing else null
+        val results = FloatArray(2)
+        val now = System.currentTimeMillis()
+        var bestDist = 400f
+        var best: DriveView.LightData? = null
+
+        fun consider(lat: Double, lon: Double, phase: SpatTemParser.Phase, secsLeft: Int?) {
+            Location.distanceBetween(loc.latitude, loc.longitude, lat, lon, results)
+            val d = results[0]
+            if (d > 400f || d >= bestDist) return
+            if (bearing != null) {
+                val diff = abs(((bearing - results[1] + 180f + 360f) % 360f) - 180f)
+                if (diff > 90f) return
+            }
+            bestDist = d
+            best = DriveView.LightData(phase, d, secsLeft)
+        }
+
+        // Hardware SPATEM RSUs
+        spatRsus.entries.removeAll { now - it.value.lastSeenMs > 15_000 }
+        spatRsus.values.forEach { rsu -> consider(rsu.lat, rsu.lon, rsu.phase, null) }
+
+        // OTM WS traffic lights (show even without SPAT — phase = UNKNOWN = all dim)
+        otmLightPoints.values.forEach { p ->
+            consider(p.lat, p.lon, p.spatPhase ?: SpatTemParser.Phase.UNKNOWN, p.spatSecsLeft)
+        }
+        return best
+    }
+
+    private fun findNearbyDriveVehicles(loc: Location): List<DriveView.NearbyVehicle> {
+        val bearing = if (loc.hasBearing()) loc.bearing else return emptyList()
+        val results = FloatArray(2)
+        val cutoff  = System.currentTimeMillis() - 5_000L
+        return recentCamFrames.values.mapNotNull { f ->
+            if (f.sec * 1000L < cutoff) return@mapNotNull null
+            val ll = f.latLon ?: return@mapNotNull null
+            Location.distanceBetween(loc.latitude, loc.longitude, ll.first, ll.second, results)
+            val d = results[0]
+            if (d < 3f || d > 250f) return@mapNotNull null
+            val relBearing = ((results[1] - bearing + 360f) % 360f)
+            DriveView.NearbyVehicle(relBearing, d, ((f.speedMps ?: 0.0) * 3.6f).toFloat())
+        }.sortedBy { it.distanceM }
+    }
+
+    private fun findActiveCondition(loc: Location): String? {
+        val results = FloatArray(2)
+        val bearing = if (loc.hasBearing()) loc.bearing else null
+        // Check for any recent DENM in forward cone within 500m
+        return recentCamFrames.values.firstOrNull { f ->
+            if (f.msgType != ItsG5Decoder.MsgType.DENM) return@firstOrNull false
+            val ll = f.latLon ?: return@firstOrNull false
+            Location.distanceBetween(loc.latitude, loc.longitude, ll.first, ll.second, results)
+            val d = results[0]
+            if (d > 500f) return@firstOrNull false
+            if (bearing != null) {
+                val diff = abs(((bearing - results[1] + 180f + 360f) % 360f) - 180f)
+                diff < 80f
+            } else d < 300f
+        }?.let { f ->
+            val cause = f.denmCause
+            if (cause != null) cause.label() + cause.sublabel().let { if (it.isNotEmpty()) " · $it" else "" }
+            else "Hazard warning"
+        }
+    }
+
+    // --------------------------------------------------------- OTM Live Data
+
+    private fun toggleOtm() {
+        otmEnabled = !otmEnabled
+        if (otmEnabled) startOtm() else stopOtm()
+        applyOtmFabTint()
+        toast(getString(if (otmEnabled) R.string.otm_enabled else R.string.otm_disabled))
+    }
+
+    private fun startOtm() {
+        if (otmClient != null) return
+        otmClient = OtmWebSocketClient { upserts, deletes ->
+            // Callback is already on the main thread (via Handler in OtmWebSocketClient)
+            val bb = expandedBoundingBox()
+            upserts.forEach {
+                otmLayer.upsert(it, bb)
+                // Store ALL traffic lights — even without live SPAT data (phase shown as UNKNOWN)
+                if (it.kind == "traffic-light") otmLightPoints[it.mac] = it
+            }
+            deletes.forEach {
+                otmLayer.delete(it)
+                otmLightPoints.remove(it)
+            }
+            if (driveModeEnabled) updateDriveMode()
+        }.also { it.start() }
+    }
+
+    private fun stopOtm() {
+        otmClient?.stop()
+        otmClient = null
+        otmLayer.clear()
+    }
+
+    private fun applyOtmFabTint() {
+        if (!::binding.isInitialized) return
+        binding.fabOtmLive.backgroundTintList = if (otmEnabled)
+            ColorStateList.valueOf(OtmLiveLayer.otmColor("vehicle"))   // amber when active
+        else
+            defaultBtnTintUsb
+    }
+
+    /** Current map bounding box expanded by 10 % on each side (max 50 km). */
+    private fun expandedBoundingBox(): BoundingBox {
+        val bb      = binding.map.boundingBox
+        val latBuf  = minOf((bb.latNorth - bb.latSouth) * 0.10, 0.45)
+        val lonBuf  = minOf(abs(bb.lonEast - bb.lonWest) * 0.10, 0.65)
+        return BoundingBox(
+            bb.latNorth + latBuf, bb.lonEast + lonBuf,
+            bb.latSouth - latBuf, bb.lonWest - lonBuf
+        )
+    }
+
+    // --------------------------------------------------------- Demo Mode
+
+    private fun startDemoMode() {
+        demoGenerator?.stop()
+        val center = binding.map.mapCenter
+        demoGenerator = DemoFrameGenerator().also { gen ->
+            gen.setCenter(center.latitude, center.longitude)
+            gen.start(lifecycleScope) { frames -> handleFrames(frames) }
+        }
+        toast(getString(R.string.demo_started))
+    }
+
+    private fun stopDemoMode() {
+        demoGenerator?.stop()
+        demoGenerator = null
+        toast(getString(R.string.demo_stopped))
     }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()

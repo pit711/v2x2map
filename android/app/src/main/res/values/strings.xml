@@ -211,6 +211,39 @@
     <string name="hw_reset_title">Resetting the board from the app</string>
     <string name="hw_reset_body">The USB and BT connection screens have a "Reset on start" option that pulses RTS high for 100 ms and then low again. This soft-resets the ESP32-C5 without unplugging the cable and triggers a new test frame.</string>
 
+    <!-- Drive Mode -->
+    <string name="drive_mode_label">Drive Mode</string>
+    <string name="drive_mode_on">Drive-Modus aktiv — OTM Live-Daten aktiviert</string>
+    <string name="drive_mode_off">Drive-Modus beendet</string>
+
+    <!-- OTM Live Data -->
+    <string name="otm_live_label">OTM Live</string>
+    <string name="otm_enabled">OTM Live-Daten aktiv — Daten von opentrafficmap.org werden geladen</string>
+    <string name="otm_disabled">OTM Live-Daten deaktiviert</string>
+    <string name="otm_color_note">OTM-Marker: amber · Eigene Frames: typenbasierte Farben</string>
+
+    <!-- Demo Mode -->
+    <string name="demo_section">DevOps</string>
+    <string name="demo_hint">Simulierte ITS-G5-Frames im aktuellen Kartenausschnitt. Die Frames durchlaufen dieselbe Pipeline wie echte Hardware-Daten — Aufzeichnung, MQTT und Log funktionieren normal.</string>
+    <string name="demo_start">Demo-Modus starten</string>
+    <string name="demo_stop">Demo-Modus beenden</string>
+    <string name="demo_started">Demo-Modus aktiv — simulierte Fahrzeuge sichtbar</string>
+    <string name="demo_stopped">Demo-Modus beendet</string>
+
+    <!-- PCAP Upload -->
+    <string name="upload_title">Upload Recordings</string>
+    <string name="upload_send">Upload</string>
+    <string name="upload_cancel">Cancel</string>
+    <string name="upload_empty">No recordings found.\n\nEnable recording in Settings to capture frames.</string>
+    <string name="upload_progress_label">Uploading via MQTT</string>
+    <string name="upload_progress_fmt">%1$d / %2$d packets</string>
+    <string name="upload_done">Done — %1$d / %2$d packets sent.</string>
+    <string name="upload_connect_failed">Could not connect to any MQTT broker. Check Settings.</string>
+    <string name="upload_no_broker">No MQTT broker configured. Add one in Settings → MQTT.</string>
+    <string name="upload_already_running">Upload already in progress.</string>
+    <string name="upload_empty_pcap">Recording contains no packets.</string>
+    <string name="upload_error">Upload error: %1$s</string>
+
     <!-- About body -->
     <string name="about_app_name">V2X2MAP</string>
     <string name="about_version">Version %1$s (build %2$d)</string>

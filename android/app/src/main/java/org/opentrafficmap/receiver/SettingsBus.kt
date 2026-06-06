@@ -20,6 +20,7 @@ object SettingsBus {
     fun interface OnDarkModeChanged { fun call(on: Boolean) }
     fun interface OnOwnTrackChanged { fun call(on: Boolean) }
     fun interface OnResetAll { fun call() }
+    fun interface OnDemoModeChanged { fun call(on: Boolean) }
 
     var onFollowChanged: OnFollowChanged? = null
     var onMqttToggle:    OnMqttToggle?    = null
@@ -32,6 +33,9 @@ object SettingsBus {
     var onDarkModeChanged: OnDarkModeChanged? = null
     var onOwnTrackChanged: OnOwnTrackChanged? = null
     var onResetAll: OnResetAll? = null
+    var onDemoModeChanged: OnDemoModeChanged? = null
+
+    @Volatile var demoModeActive: Boolean = false
 
     @Volatile var liveRecorder: FrameRecorder? = null
     @Volatile var liveBtController: BluetoothController? = null
@@ -50,6 +54,7 @@ object SettingsBus {
     fun darkModeChanged(on: Boolean)     = onDarkModeChanged?.call(on)
     fun ownTrackChanged(on: Boolean)     = onOwnTrackChanged?.call(on)
     fun resetAll()                       = onResetAll?.call()
+    fun demoModeChanged(on: Boolean)    = onDemoModeChanged?.call(on)
 
     fun recorder()        = liveRecorder
     fun btController()    = liveBtController

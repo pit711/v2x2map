@@ -74,5 +74,9 @@
             android:name=".AboutActivity"
             android:label="@string/about_title"
             android:parentActivityName=".SettingsActivity"/>
+        <activity
+            android:name=".PcapUploadActivity"
+            android:label="@string/upload_title"
+            android:parentActivityName=".MainActivity"/>
     </application>
 </manifest>

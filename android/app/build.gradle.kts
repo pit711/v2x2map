@@ -94,4 +94,7 @@ dependencies {
 
     // MQTT (Paho Java client, async I/O runs on its own thread)
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+
+    // OkHttp WebSocket — used by OtmWebSocketClient for the OTM live feed
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
