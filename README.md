@@ -3,6 +3,8 @@
 Plug a $20 ESP32-C5 dev board into your phone, drive somewhere with modern infrastructure, watch the CAMs, DENMs and SPATEMs roll in.
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/711it)
+[![PayPal](https://img.shields.io/badge/PayPal-tip-00457C?logo=paypal&logoColor=white)](https://paypal.me/711IT)
 
 <table>
 <tr>
@@ -158,6 +160,15 @@ python its_g5_bridge.py --port COMx --node-id <mac-without-colons>
 Dashboard at `http://127.0.0.1:8080`. Default MQTT broker: `mqtts://cits1.opentrafficmap.org:8883`.
 
 </details>
+
+---
+
+## Support
+
+V2X2MAP is open-source and free. If it's useful to you, a small tip keeps it going:
+
+- ☕ **Ko-fi:** https://ko-fi.com/711it
+- 💸 **PayPal:** https://paypal.me/711IT
 
 ---
 
