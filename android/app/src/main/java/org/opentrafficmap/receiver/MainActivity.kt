@@ -38,6 +38,7 @@ import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import java.time.Instant
 import java.util.LinkedList
 
 class MainActivity : AppCompatActivity() {
@@ -634,7 +635,7 @@ class MainActivity : AppCompatActivity() {
     // ---------------------------------------------------------- Frames
 
     private fun onSerialBytes(chunk: ByteArray) {
-        val frames = synchronized(reader) { reader.feed(chunk) }
+        val frames = synchronized(reader) { reader.feed(chunk, Instant.now()) }
         if (frames.isEmpty()) return
         runOnUiThread { handleFrames(frames) }
     }

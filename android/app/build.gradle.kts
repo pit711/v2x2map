@@ -18,12 +18,12 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "org.opentrafficmap.receiver"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "org.opentrafficmap.receiver"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 26
+        targetSdk = 36
         versionCode = 9
         versionName = "0.2.3"
     }

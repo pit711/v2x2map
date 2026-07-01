@@ -1,6 +1,5 @@
 package org.opentrafficmap.receiver
 
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.location.Location
 import android.view.LayoutInflater
@@ -11,6 +10,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.Date
 import java.util.Locale
 
@@ -40,7 +40,7 @@ class FrameLogAdapter(
         val stationId: Long?,
         val recentFrames: ArrayDeque<Frame> = ArrayDeque(),
         var frameCount: Int = 0,
-        var lastSeen: Long = 0L,
+        var lastSeen: Instant = Instant.EPOCH,
         var expanded: Boolean = false,
         var lastSecured: Boolean? = null,
         var lastLatLon: Pair<Double, Double>? = null,
@@ -63,7 +63,7 @@ class FrameLogAdapter(
             val key   = stationKey(frame)
             val entry = stations.getOrPut(key) { StationEntry(key, frame.msgType, frame.stationId) }
             entry.frameCount++
-            entry.lastSeen   = System.currentTimeMillis()
+            entry.lastSeen    = frame.wallTime
             entry.lastSecured = frame.secured
             entry.lastLatLon  = frame.latLon ?: entry.lastLatLon
             entry.recentFrames.addFirst(frame)
@@ -144,7 +144,7 @@ class FrameLogAdapter(
         vh.summary.text = buildSummary(entry)
 
         // Last-seen time
-        vh.time.text = timeFmt.format(Date(entry.lastSeen))
+        vh.time.text = timeFmt.format(Date.from(entry.lastSeen))
 
         // Distance
         vh.dist.text = formatDistance(entry.lastLatLon, userLocation)
@@ -219,7 +219,7 @@ class FrameLogAdapter(
     private fun bindFrame(vh: FrameVH, frame: Frame) {
         vh.itemView.setBackgroundColor(0x0A000000)   // faint tint to visually indent
         vh.itemView.setOnClickListener { onFrameClick(frame) }
-        vh.time.text = timeFmt.format(Date(frame.sec * 1000L + frame.usec / 1000L))
+        vh.time.text = timeFmt.format(Date.from(frame.wallTime))
         vh.len.text  = frame.len.toString()
         vh.hex.text  = frame.hexPreview()
         when (frame.etherType) {
