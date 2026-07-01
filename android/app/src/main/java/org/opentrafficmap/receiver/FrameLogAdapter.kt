@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
 import java.time.Instant
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -143,7 +144,7 @@ class FrameLogAdapter(
         vh.summary.text = buildSummary(entry)
 
         // Last-seen time
-        vh.time.text = timeFmt.format(entry.lastSeen)
+        vh.time.text = timeFmt.format(Date.from(entry.lastSeen))
 
         // Distance
         vh.dist.text = formatDistance(entry.lastLatLon, userLocation)
@@ -218,7 +219,7 @@ class FrameLogAdapter(
     private fun bindFrame(vh: FrameVH, frame: Frame) {
         vh.itemView.setBackgroundColor(0x0A000000)   // faint tint to visually indent
         vh.itemView.setOnClickListener { onFrameClick(frame) }
-        vh.time.text = timeFmt.format(frame.wallTime)
+        vh.time.text = timeFmt.format(Date.from(frame.wallTime))
         vh.len.text  = frame.len.toString()
         vh.hex.text  = frame.hexPreview()
         when (frame.etherType) {

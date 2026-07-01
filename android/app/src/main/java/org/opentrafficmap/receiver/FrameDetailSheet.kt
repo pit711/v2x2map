@@ -53,7 +53,7 @@ object FrameDetailSheet {
         fun row(label: String, value: String) = sb.append("%-14s  %s\n".format(label, value))
 
         row(ctx.getString(R.string.detail_label_frame), "#${f.seq}")
-        row(ctx.getString(R.string.detail_label_time),timeFmt.format(f.wallTime) + "  (ts ${f.receiverSec}.%06d s)".format(f.receiverUsec))
+        row(ctx.getString(R.string.detail_label_time),timeFmt.format(Date.from(f.wallTime)) + "  (ts ${f.receiverSec}.%06d s)".format(f.receiverUsec))
         row(ctx.getString(R.string.detail_label_ethertype), when (f.etherType) {
             null   -> "—"
             0x8947 -> "0x8947  ITS-G5"
