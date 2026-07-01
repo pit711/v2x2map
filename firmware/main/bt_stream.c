@@ -83,7 +83,19 @@ static QueueHandle_t  s_queue;
  *   0..1: discovery cycle (no client connected)
  *   2..3: connected cycle  (client present)
  */
-static volatile uint16_t s_cycle_ms[4] = { 10000, 2000, 800, 400 };
+/* connSniff (index 2) MUST stay below the BLE central's supervision timeout.
+ * During a connected sniff window the BLE radio is fully dark; if that lasts
+ * longer than the supervision timeout (~700 ms on iOS/macOS — the firmware's
+ * requested 5 s update is NOT honored by the host) the link drops right after
+ * connect. A connSniff sweep on an ESP32-C5 showed: stable up to 680 ms, hard
+ * cliff at 700 ms. 500 ms is chosen for a ~28 % safety margin (for weaker
+ * field RF / other centrals) while still sniffing ~56 % of the time.
+ * Discovery (index 0..1) tuned for fast (re)connect: a connect-time sweep found
+ * discSniff=1000/discBle=1000 → ~1.4 s connect (vs ~12 s at 10000/2000); discBle
+ * below ~500 ms hurts (advert windows get missed). The iOS app exposes 3 presets
+ * — Stabil(connSniff 300) / Ausgewogen(500) / Mehr Daten(600) — and this
+ * compiled default equals the Ausgewogen preset. */
+static volatile uint16_t s_cycle_ms[4] = { 1000, 1000, 500, 400 };
 #define CYC_DISC_SNIFF  s_cycle_ms[0]
 #define CYC_DISC_BLE    s_cycle_ms[1]
 #define CYC_CONN_SNIFF  s_cycle_ms[2]
@@ -269,14 +281,21 @@ static int gap_event_cb(struct ble_gap_event *ev, void *arg)
             s_notify_enabled = false;
             led_status_ble_connected(true);
             ESP_LOGI(TAG, "connect: handle=%d", s_conn_handle);
-            /* Stretch supervision timeout to 30 s — the coex cycle has
-             * windows where the link can't be serviced and the default
-             * 7.2 s would tear down every connection. */
+            /* Stretch the supervision timeout so the coex sniff windows (where
+             * the BLE link is starved) don't tear the link down.
+             *
+             * iOS caps a peripheral's requested supervision timeout at 6 s
+             * (Apple Bluetooth Accessory Design Guidelines: 2 s..6 s). Requesting
+             * more (we used to ask for 30 s) makes iOS REJECT the whole update
+             * and fall back to its ~0.7 s default, so every connected sniff
+             * window (CYC_CONN_SNIFF, e.g. 800 ms) trips connectionTimeout and
+             * the iPhone reconnect-loops. 5 s is within Apple's range and still
+             * comfortably spans the sniff window. Keep CYC_CONN_SNIFF < ~5 s. */
             struct ble_gap_upd_params up = {
                 .itvl_min            = 0x18,   /* 30 ms */
                 .itvl_max            = 0x28,   /* 50 ms */
                 .latency             = 0,
-                .supervision_timeout = 3000,   /* 30 s */
+                .supervision_timeout = 500,    /* 5.0 s (units of 10 ms) */
                 .min_ce_len          = 0,
                 .max_ce_len          = 0,
             };
@@ -407,6 +426,18 @@ static void coex_window_task(void *arg)
     int n = 0;
     for (;;) {
         bool connected = (s_conn_handle != BLE_HS_CONN_HANDLE_NONE);
+        /* Freshly connected but the client hasn't subscribed to notifications
+         * yet: keep the radio on BLE (skip sniffing) so the link can settle —
+         * in particular so the 5 s supervision-timeout parameter update can
+         * complete — before we start starving the radio. Otherwise a large
+         * CYC_CONN_SNIFF window trips the initial (short ~1.5 s) supervision
+         * timeout and the connection drops right after connect, before the 5 s
+         * value ever takes effect. Once the client subscribes, the normal
+         * connected duty cycle takes over. */
+        if (connected && !s_notify_enabled) {
+            chunked_delay(CYC_CONN_BLE, connected);
+            continue;
+        }
         uint16_t sniff_ms = connected ? CYC_CONN_SNIFF : CYC_DISC_SNIFF;
         uint16_t ble_ms   = connected ? CYC_CONN_BLE   : CYC_DISC_BLE;
         sniffer_resume();

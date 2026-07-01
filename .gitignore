@@ -4,6 +4,14 @@ firmware/managed_components/
 firmware/dependencies.lock
 firmware/sdkconfig.old
 
+# iOS build artifacts (xcodebuild / SwiftPM)
+ios/**/build/
+ios/**/build-sim/
+ios/**/.build/
+ios/**/DerivedData/
+ios/**/xcuserdata/
+*.xcuserstate
+
 # Python venv / pycache / PyInstaller
 bridge/__pycache__/
 bridge/build/

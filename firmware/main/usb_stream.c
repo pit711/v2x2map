@@ -244,7 +244,9 @@ static void handle_cfg_command(char *line)
         err = config_set_str((config_index_t)idx, val);
     }
 
-    char reply[64];
+    /* key/value come out of the 128-byte command line buffer, so size the reply
+     * to hold the worst case — otherwise -Os trips -Werror=format-truncation. */
+    char reply[256];
     if (err == ESP_OK) snprintf(reply, sizeof(reply), "CFG_OK:%s\n", key);
     else               snprintf(reply, sizeof(reply), "CFG_ERR:%s:%s\n", key, esp_err_to_name(err));
     cfg_reply(reply);
