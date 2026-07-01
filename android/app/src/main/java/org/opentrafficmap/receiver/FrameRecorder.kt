@@ -101,8 +101,7 @@ class FrameRecorder(private val context: Context) {
     }
 
     companion object {
-        // 0xa1b2c3d4 stored LE → bytes d4 c3 b2 a1 → Wireshark recognises native-endian pcap
-        private val PCAP_MAGIC     = 0xa1b2c3d4.toInt()
+        private val PCAP_MAGIC     = 0xA1B23C4D.toInt()
         private const val LINK_IEEE80211 = 105
     }
 }
