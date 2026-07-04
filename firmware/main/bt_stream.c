@@ -64,6 +64,13 @@ static const ble_uuid128_t CFG_UUID = BLE_UUID128_INIT(
     0x03, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x21, 0x9b,
     0x47, 0x4a, 0xd8, 0x12, 0x90, 0x7e, 0xe5, 0xb6);
 
+/* Read-only: the factory BT MAC (6 bytes, big-endian as printed on the label).
+ * iOS/CoreBluetooth hides BLE addresses from apps, so the receiver's identity
+ * (e.g. for per-device MQTT node IDs) has to come from a characteristic. */
+static const ble_uuid128_t MAC_UUID = BLE_UUID128_INIT(
+    0x04, 0x00, 0x00, 0x00, 0x00, 0x3f, 0x21, 0x9b,
+    0x47, 0x4a, 0xd8, 0x12, 0x90, 0x7e, 0xe5, 0xb6);
+
 typedef struct {
     uint16_t total_len;        /* HEADER_LEN + payload_len */
     uint8_t  data[];           /* preformatted ITS5 frame */
@@ -177,6 +184,23 @@ static int cfg_access_cb(uint16_t conn_handle, uint16_t attr_handle,
     return BLE_ATT_ERR_UNLIKELY;
 }
 
+static int mac_access_cb(uint16_t conn_handle, uint16_t attr_handle,
+                         struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    (void)conn_handle; (void)attr_handle; (void)arg;
+    if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR) {
+        uint8_t mac[6] = {0};
+        if (esp_read_mac(mac, ESP_MAC_BT) != ESP_OK) {
+            return BLE_ATT_ERR_UNLIKELY;
+        }
+        int rc = os_mbuf_append(ctxt->om, mac, sizeof(mac));
+        return (rc == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+    }
+    return BLE_ATT_ERR_UNLIKELY;
+}
+
+static uint16_t s_mac_val_handle;
+
 static const struct ble_gatt_chr_def chr_defs[] = {
     {
         .uuid       = &CHR_UUID.u,
@@ -189,6 +213,12 @@ static const struct ble_gatt_chr_def chr_defs[] = {
         .access_cb  = cfg_access_cb,
         .flags      = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
         .val_handle = &s_cfg_val_handle,
+    },
+    {
+        .uuid       = &MAC_UUID.u,
+        .access_cb  = mac_access_cb,
+        .flags      = BLE_GATT_CHR_F_READ,
+        .val_handle = &s_mac_val_handle,
     },
     { 0 },
 };
