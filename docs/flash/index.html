@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>V2X2MAP — Web-Flasher</title>
-<meta name="description" content="V2X2MAP ITS-G5-Empfänger direkt im Browser flashen — ohne Installation.">
+<title>V2X2MAP — Web Flasher</title>
+<meta name="description" content="Flash the V2X2MAP ITS-G5 receiver right from your browser — no install needed.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%231d2530'/%3E%3Ccircle cx='24' cy='24' r='19' fill='%232b3138' stroke='%23fff' stroke-width='2'/%3E%3Crect x='17.5' y='10' width='13' height='28' rx='5.5' fill='%23161a1e'/%3E%3Ccircle cx='24' cy='16.5' r='3.7' fill='%23ff5555'/%3E%3Ccircle cx='24' cy='24' r='3.7' fill='%23ffc837'/%3E%3Ccircle cx='24' cy='31.5' r='3.7' fill='%235bdd6e'/%3E%3C/svg%3E">
 <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 <style>
   :root{
     --bg:#eef1f4; --surface:#ffffff; --ink:#161b22; --muted:#5c6773;
     --line:#d8dee5; --accent:#1f7f93; --dark:#1d2530;
-    --ok:#2e7d32; --warn-bg:#fff3cd; --warn-ink:#7a5c00;
+    --warn-bg:#fff3cd; --warn-ink:#7a5c00;
   }
   @media (prefers-color-scheme: dark){
     :root{ --bg:#0e1216; --surface:#181e25; --ink:#e7edf3; --muted:#93a1af;
@@ -46,7 +47,7 @@
 <body>
 <header>
   <div class="hwrap">
-    <h1>V2X2MAP <small>ITS-G5 Receiver · Web-Flasher</small></h1>
+    <h1>V2X2MAP <small>ITS-G5 Receiver · Web Flasher</small></h1>
     <!-- the app's own map markers: car, bus, live traffic signal -->
     <svg width="150" height="64" viewBox="0 0 150 64" aria-hidden="true">
       <line x1="8" y1="56" x2="142" y2="12" stroke="#39424c" stroke-width="12" stroke-linecap="round"/>
@@ -76,47 +77,46 @@
 
 <main>
   <div class="card">
-    <h2>Empfänger direkt im Browser flashen</h2>
-    <p>Verbinde den <b>ESP32-C5</b> per USB mit deinem Computer und klicke auf
-       <i>Verbinden &amp; Flashen</i> — der Browser erledigt den Rest. Keine Installation,
-       keine Treiber, keine Konfiguration: Der Empfänger leitet seine Kennung automatisch
-       aus der eigenen Hardware-Adresse ab und ist nach dem Neustart sofort per Bluetooth
-       in der V2X2MAP-App sichtbar.</p>
+    <h2>Flash the receiver right in your browser</h2>
+    <p>Connect the <b>ESP32-C5</b> to your computer via USB and click
+       <i>Connect &amp; Flash</i> — the browser does the rest. No install, no drivers,
+       no configuration: the receiver derives its ID automatically from its own hardware
+       address and shows up over Bluetooth in the V2X2MAP app right after it reboots.</p>
     <div class="flashrow">
       <esp-web-install-button manifest="manifest.json">
         <button slot="activate" style="background:var(--accent); color:#fff; border:0;
                 border-radius:10px; padding:12px 22px; font-size:16px; font-weight:600; cursor:pointer;">
-          🔌 Verbinden &amp; Flashen
+          🔌 Connect &amp; Flash
         </button>
-        <span slot="unsupported" class="hint">⚠️ Dieser Browser unterstützt kein Web&nbsp;Serial.
-          Bitte <b>Google Chrome</b> oder <b>Microsoft Edge</b> am Computer verwenden —
-          oder den <a href="https://github.com/pit711/v2x2map/releases/latest">Desktop-Flasher</a> laden.</span>
-        <span slot="not-allowed" class="hint">⚠️ Zugriff auf den seriellen Port wurde blockiert (HTTPS nötig).</span>
+        <span slot="unsupported" class="hint">⚠️ This browser doesn’t support Web&nbsp;Serial.
+          Please use <b>Google Chrome</b> or <b>Microsoft Edge</b> on a computer —
+          or grab the <a href="https://github.com/pit711/v2x2map/releases/latest">desktop flasher</a>.</span>
+        <span slot="not-allowed" class="hint">⚠️ Serial-port access was blocked (HTTPS required).</span>
       </esp-web-install-button>
       <span class="badge">Firmware v0.2.4</span>
     </div>
 
     <div class="bootbox">
-      <b>Gerät wird nicht gefunden? Boot-Modus manuell aktivieren:</b>
-      1.&nbsp;BOOT-Taste gedrückt halten &nbsp;→&nbsp; 2.&nbsp;RESET kurz drücken (BOOT weiter halten)
-      &nbsp;→&nbsp; 3.&nbsp;BOOT loslassen und erneut <i>Verbinden &amp; Flashen</i> klicken
+      <b>Device not found? Put it into boot mode manually:</b>
+      1.&nbsp;Hold the BOOT button &nbsp;→&nbsp; 2.&nbsp;Tap RESET once (keep holding BOOT)
+      &nbsp;→&nbsp; 3.&nbsp;Release BOOT and click <i>Connect &amp; Flash</i> again
     </div>
 
     <div class="browsers">
-      Funktioniert mit Chrome, Edge &amp; Opera am Computer (Web-Serial-Technik).
-      Safari, Firefox und Mobilgeräte werden nicht unterstützt — dort bitte den
-      <a href="https://github.com/pit711/v2x2map/releases/latest">Desktop-Flasher (macOS/Windows)</a> verwenden.
+      Works in Chrome, Edge &amp; Opera on a computer (Web Serial). Safari, Firefox and
+      mobile devices aren’t supported — use the
+      <a href="https://github.com/pit711/v2x2map/releases/latest">desktop flasher (macOS/Windows)</a> there.
     </div>
   </div>
 
   <div class="card">
-    <h2>So geht’s</h2>
+    <h2>How it works</h2>
     <ol>
-      <li>ESP32-C5-Empfänger per <b>USB-Kabel</b> anschließen</li>
-      <li><b>Verbinden &amp; Flashen</b> klicken und im Browser-Dialog den seriellen Port wählen
-          (z.&nbsp;B. „USB JTAG/serial debug unit“)</li>
-      <li><b>Installieren</b> bestätigen — das Flashen dauert etwa eine Minute</li>
-      <li>Fertig! Empfänger startet neu → V2X2MAP-App auf dem Handy öffnen</li>
+      <li>Plug the ESP32-C5 receiver in with a <b>USB cable</b></li>
+      <li>Click <b>Connect &amp; Flash</b> and pick the serial port in the browser dialog
+          (e.g. “USB JTAG/serial debug unit”)</li>
+      <li>Confirm <b>Install</b> — flashing takes about a minute</li>
+      <li>Done! The receiver reboots → open the V2X2MAP app on your phone</li>
     </ol>
   </div>
 </main>
@@ -124,7 +124,7 @@
 <footer>
   <a href="https://v2x2map.com">v2x2map.com</a> ·
   <a href="https://github.com/pit711/v2x2map">GitHub</a> ·
-  Open Source — Firmware und Flasher im Repository
+  Open source — firmware and flasher in the repository
 </footer>
 </body>
 </html>
