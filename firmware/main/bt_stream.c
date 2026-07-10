@@ -434,6 +434,10 @@ static void host_task(void *param)
  * mid-sniff would starve the link past the host supervision timeout (~5 s
  * on Android default) and trigger an immediate reconnect-loop. */
 #define COEX_CHUNK_MS 200
+/* Connected-mode interleaving (see coex_window_task): max radio-hold per
+ * slice and the BLE breathing gap between slices. */
+#define CONN_SNIFF_SLICE_MS 350
+#define CONN_SNIFF_GAP_MS   60
 static void chunked_delay(uint32_t total_ms, bool was_connected)
 {
     uint32_t left = total_ms;
@@ -471,7 +475,31 @@ static void coex_window_task(void *arg)
         uint16_t sniff_ms = connected ? CYC_CONN_SNIFF : CYC_DISC_SNIFF;
         uint16_t ble_ms   = connected ? CYC_CONN_BLE   : CYC_DISC_BLE;
         sniffer_resume();
-        chunked_delay(sniff_ms, connected);
+        if (connected) {
+            /* Interleaved sniffing while a client is connected: never hold the
+             * radio away from BLE for more than ~350 ms at a stretch. Field
+             * evidence 2026-07-10: with connSniff 500/600 the iPhone link died
+             * with CBError #6 (supervision timeout) four times in 30 s at
+             * RSSI -47 dBm under ~15 pkt/s ITS load — pure BLE starvation, not
+             * range. Short 60 ms micro-gaps mid-window give the link its
+             * connection events (~30 ms interval on iOS) while keeping the
+             * sniff duty at ≈85 %. The window is split evenly so the last
+             * slice isn't a starving remainder. */
+            uint32_t nslices = (sniff_ms + CONN_SNIFF_SLICE_MS - 1) / CONN_SNIFF_SLICE_MS;
+            if (nslices < 1) nslices = 1;
+            uint32_t slice = sniff_ms / nslices;
+            for (uint32_t i = 0; i < nslices; i++) {
+                chunked_delay(slice, connected);
+                if ((s_conn_handle != BLE_HS_CONN_HANDLE_NONE) != connected) break;
+                if (i + 1 == nslices) break;
+                sniffer_pause();
+                vTaskDelay(pdMS_TO_TICKS(CONN_SNIFF_GAP_MS));
+                if ((s_conn_handle != BLE_HS_CONN_HANDLE_NONE) != connected) break;
+                sniffer_resume();
+            }
+        } else {
+            chunked_delay(sniff_ms, connected);
+        }
         sniffer_pause();
         if ((n++ & 0xF) == 0) {
             dbg_printf("[bt] cycle %s: sniff=%u ble=%u",
