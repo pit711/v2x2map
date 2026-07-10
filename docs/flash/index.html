@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V2X2MAP — Web-Flasher</title>
+<meta name="description" content="V2X2MAP ITS-G5-Empfänger direkt im Browser flashen — ohne Installation.">
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+  :root{
+    --bg:#eef1f4; --surface:#ffffff; --ink:#161b22; --muted:#5c6773;
+    --line:#d8dee5; --accent:#1f7f93; --dark:#1d2530;
+    --ok:#2e7d32; --warn-bg:#fff3cd; --warn-ink:#7a5c00;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0e1216; --surface:#181e25; --ink:#e7edf3; --muted:#93a1af;
+           --line:#2a323c; --accent:#3fb6cd; --warn-bg:#33290b; --warn-ink:#ffd75e; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:16px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+  header{background:var(--dark); color:#fff; padding:26px 20px 22px;}
+  .hwrap{max-width:760px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  h1{margin:0; font-size:26px; letter-spacing:-.02em}
+  h1 small{display:block; font-size:13px; font-weight:400; color:#93a1af; margin-top:4px}
+  main{max-width:760px; margin:0 auto; padding:28px 20px 60px}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px;
+        padding:22px; margin:0 0 18px; box-shadow:0 1px 2px rgba(20,30,45,.08)}
+  h2{font-size:18px; margin:0 0 10px}
+  ol{margin:8px 0 0; padding-left:22px}
+  li{margin:6px 0}
+  .flashrow{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px}
+  esp-web-install-button{--esp-tools-button-color:var(--accent); --esp-tools-button-text-color:#fff;}
+  .hint{font-size:14px; color:var(--muted)}
+  .bootbox{background:var(--warn-bg); color:var(--warn-ink); border-radius:10px;
+           padding:12px 16px; font-size:14.5px; margin-top:14px}
+  .bootbox b{display:block; margin-bottom:4px}
+  .browsers{font-size:14px; color:var(--muted); border-top:1px solid var(--line);
+            margin-top:14px; padding-top:12px}
+  a{color:var(--accent)}
+  footer{max-width:760px; margin:0 auto; padding:0 20px 40px; font-size:13px; color:var(--muted)}
+  .badge{display:inline-block; background:rgba(255,255,255,.12); color:#cfe3e8;
+         font-size:11.5px; padding:3px 9px; border-radius:999px; letter-spacing:.04em}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <h1>V2X2MAP <small>ITS-G5 Receiver · Web-Flasher</small></h1>
+    <!-- the app's own map markers: car, bus, live traffic signal -->
+    <svg width="150" height="64" viewBox="0 0 150 64" aria-hidden="true">
+      <line x1="8" y1="56" x2="142" y2="12" stroke="#39424c" stroke-width="12" stroke-linecap="round"/>
+      <line x1="8" y1="56" x2="142" y2="12" stroke="#4a5560" stroke-width="1" stroke-dasharray="4 6"/>
+      <g transform="translate(30,36) scale(.78)">
+        <rect x="-11" y="-19" width="22" height="38" rx="7" fill="#2f7fd0" stroke="#fff" stroke-width="1.6"/>
+        <rect x="-8" y="-13" width="16" height="6" rx="2" fill="#1b4d80"/>
+        <rect x="-8" y="6" width="16" height="5" rx="2" fill="#245e9b"/>
+      </g>
+      <g transform="translate(72,30) scale(.78)">
+        <rect x="-11.5" y="-24" width="23" height="48" rx="6" fill="#2f7fd0" stroke="#fff" stroke-width="1.6"/>
+        <rect x="-8.5" y="-19" width="17" height="6" rx="1.6" fill="#1b4d80"/>
+        <rect x="-7.5" y="-8" width="15" height="2.6" rx="1.2" fill="#7db4e8"/>
+        <rect x="-7.5" y="0" width="15" height="2.6" rx="1.2" fill="#7db4e8"/>
+        <rect x="-7.5" y="8" width="15" height="2.6" rx="1.2" fill="#7db4e8"/>
+      </g>
+      <g transform="translate(118,26)">
+        <circle r="17" fill="#2b3138" stroke="#fff" stroke-width="1.5"/>
+        <rect x="-6.5" y="-13" width="13" height="26" rx="5" fill="#161a1e" stroke="#8a949e"/>
+        <circle cy="-8" r="3.6" fill="#3c444d"/>
+        <circle cy="0" r="3.6" fill="#3c444d"/>
+        <circle cy="8" r="3.6" fill="#5bdd6e"/>
+      </g>
+    </svg>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Empfänger direkt im Browser flashen</h2>
+    <p>Verbinde den <b>ESP32-C5</b> per USB mit deinem Computer und klicke auf
+       <i>Verbinden &amp; Flashen</i> — der Browser erledigt den Rest. Keine Installation,
+       keine Treiber, keine Konfiguration: Der Empfänger leitet seine Kennung automatisch
+       aus der eigenen Hardware-Adresse ab und ist nach dem Neustart sofort per Bluetooth
+       in der V2X2MAP-App sichtbar.</p>
+    <div class="flashrow">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate" style="background:var(--accent); color:#fff; border:0;
+                border-radius:10px; padding:12px 22px; font-size:16px; font-weight:600; cursor:pointer;">
+          🔌 Verbinden &amp; Flashen
+        </button>
+        <span slot="unsupported" class="hint">⚠️ Dieser Browser unterstützt kein Web&nbsp;Serial.
+          Bitte <b>Google Chrome</b> oder <b>Microsoft Edge</b> am Computer verwenden —
+          oder den <a href="https://github.com/pit711/v2x2map/releases/latest">Desktop-Flasher</a> laden.</span>
+        <span slot="not-allowed" class="hint">⚠️ Zugriff auf den seriellen Port wurde blockiert (HTTPS nötig).</span>
+      </esp-web-install-button>
+      <span class="badge">Firmware v0.2.4</span>
+    </div>
+
+    <div class="bootbox">
+      <b>Gerät wird nicht gefunden? Boot-Modus manuell aktivieren:</b>
+      1.&nbsp;BOOT-Taste gedrückt halten &nbsp;→&nbsp; 2.&nbsp;RESET kurz drücken (BOOT weiter halten)
+      &nbsp;→&nbsp; 3.&nbsp;BOOT loslassen und erneut <i>Verbinden &amp; Flashen</i> klicken
+    </div>
+
+    <div class="browsers">
+      Funktioniert mit Chrome, Edge &amp; Opera am Computer (Web-Serial-Technik).
+      Safari, Firefox und Mobilgeräte werden nicht unterstützt — dort bitte den
+      <a href="https://github.com/pit711/v2x2map/releases/latest">Desktop-Flasher (macOS/Windows)</a> verwenden.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>So geht’s</h2>
+    <ol>
+      <li>ESP32-C5-Empfänger per <b>USB-Kabel</b> anschließen</li>
+      <li><b>Verbinden &amp; Flashen</b> klicken und im Browser-Dialog den seriellen Port wählen
+          (z.&nbsp;B. „USB JTAG/serial debug unit“)</li>
+      <li><b>Installieren</b> bestätigen — das Flashen dauert etwa eine Minute</li>
+      <li>Fertig! Empfänger startet neu → V2X2MAP-App auf dem Handy öffnen</li>
+    </ol>
+  </div>
+</main>
+
+<footer>
+  <a href="https://v2x2map.com">v2x2map.com</a> ·
+  <a href="https://github.com/pit711/v2x2map">GitHub</a> ·
+  Open Source — Firmware und Flasher im Repository
+</footer>
+</body>
+</html>

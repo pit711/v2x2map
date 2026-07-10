@@ -1,0 +1,16 @@
+{
+  "name": "V2X2MAP ITS-G5 Receiver",
+  "version": "0.2.4",
+  "new_install_prompt_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32-C5",
+      "parts": [
+        { "path": "firmware/bootloader.bin",       "offset": 8192 },
+        { "path": "firmware/partition-table.bin",  "offset": 32768 },
+        { "path": "firmware/ota_data_initial.bin", "offset": 122880 },
+        { "path": "firmware/firmware.bin",         "offset": 131072 }
+      ]
+    }
+  ]
+}
