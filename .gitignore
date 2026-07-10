@@ -3,6 +3,10 @@ firmware/build/
 firmware/managed_components/
 firmware/dependencies.lock
 firmware/sdkconfig.old
+firmware/sdkconfig.backup*
+
+# iOS app source is developed privately and not published in this repo
+ios/
 
 # iOS build artifacts (xcodebuild / SwiftPM)
 ios/**/build/
@@ -17,6 +21,7 @@ bridge/__pycache__/
 bridge/build/
 bridge/dist/
 bridge/*.egg-info/
+bridge/config/
 
 # Android / Gradle
 android/.gradle/
