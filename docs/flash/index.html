@@ -6,12 +6,12 @@
 <title>V2X2MAP — Web Flasher</title>
 <meta name="description" content="Flash the V2X2MAP ITS-G5 receiver right from your browser — no install needed.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%231d2530'/%3E%3Ccircle cx='24' cy='24' r='19' fill='%232b3138' stroke='%23fff' stroke-width='2'/%3E%3Crect x='17.5' y='10' width='13' height='28' rx='5.5' fill='%23161a1e'/%3E%3Ccircle cx='24' cy='16.5' r='3.7' fill='%23ff5555'/%3E%3Ccircle cx='24' cy='24' r='3.7' fill='%23ffc837'/%3E%3Ccircle cx='24' cy='31.5' r='3.7' fill='%235bdd6e'/%3E%3C/svg%3E">
-<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 <style>
   :root{
     --bg:#eef1f4; --surface:#ffffff; --ink:#161b22; --muted:#5c6773;
     --line:#d8dee5; --accent:#1f7f93; --dark:#1d2530;
-    --warn-bg:#fff3cd; --warn-ink:#7a5c00;
+    --warn-bg:#fff3cd; --warn-ink:#7a5c00; --ok:#2e7d32; --err:#c0392b;
+    --logbg:#0e1216; --logink:#c9d6df;
   }
   @media (prefers-color-scheme: dark){
     :root{ --bg:#0e1216; --surface:#181e25; --ink:#e7edf3; --muted:#93a1af;
@@ -28,29 +28,37 @@
   .card{background:var(--surface); border:1px solid var(--line); border-radius:14px;
         padding:22px; margin:0 0 18px; box-shadow:0 1px 2px rgba(20,30,45,.08)}
   h2{font-size:18px; margin:0 0 10px}
-  ol{margin:8px 0 0; padding-left:22px}
-  li{margin:6px 0}
-  .flashrow{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px}
-  esp-web-install-button{--esp-tools-button-color:var(--accent); --esp-tools-button-text-color:#fff;}
-  .hint{font-size:14px; color:var(--muted)}
+  ol{margin:8px 0 0; padding-left:22px} li{margin:6px 0}
+  .flashrow{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:6px}
+  button.primary{background:var(--accent); color:#fff; border:0; border-radius:10px;
+    padding:12px 22px; font-size:16px; font-weight:600; cursor:pointer;}
+  button.primary:disabled{opacity:.5; cursor:default}
+  button.ghost{background:transparent; color:var(--accent); border:1px solid var(--accent);
+    border-radius:10px; padding:11px 18px; font-size:15px; font-weight:600; cursor:pointer;}
+  .badge{display:inline-block; background:var(--line); color:var(--muted);
+         font-size:11.5px; padding:3px 9px; border-radius:999px; letter-spacing:.04em}
+  .status{margin-top:14px; font-size:15px; font-weight:600; min-height:22px}
+  .status.ok{color:var(--ok)} .status.err{color:var(--err)}
+  .bar{height:8px; background:var(--line); border-radius:999px; overflow:hidden; margin-top:8px; display:none}
+  .bar > i{display:block; height:100%; width:0; background:var(--accent); transition:width .2s}
   .tip{background:var(--warn-bg); color:var(--warn-ink); border-radius:10px;
        padding:14px 16px; font-size:15px; margin-top:16px; line-height:1.5}
-  .tip b{font-weight:700}
-  .tip ol{margin:8px 0 0; padding-left:20px}
-  .tip li{margin:3px 0}
+  .tip b{font-weight:700} .tip ol{margin:8px 0 0}
+  #manual{display:none}
+  pre.log{background:var(--logbg); color:var(--logink); border-radius:10px; padding:12px 14px;
+    font:12.5px/1.5 ui-monospace,'SF Mono',Menlo,Consolas,monospace; margin-top:14px;
+    max-height:240px; overflow:auto; white-space:pre-wrap; word-break:break-word;}
   .browsers{font-size:14px; color:var(--muted); border-top:1px solid var(--line);
             margin-top:14px; padding-top:12px}
   a{color:var(--accent)}
   footer{max-width:760px; margin:0 auto; padding:0 20px 40px; font-size:13px; color:var(--muted)}
-  .badge{display:inline-block; background:rgba(255,255,255,.12); color:#cfe3e8;
-         font-size:11.5px; padding:3px 9px; border-radius:999px; letter-spacing:.04em}
+  label.chk{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted); margin-top:12px}
 </style>
 </head>
 <body>
 <header>
   <div class="hwrap">
     <h1>V2X2MAP <small>ITS-G5 Receiver · Web Flasher</small></h1>
-    <!-- the app's own map markers: car, bus, live traffic signal -->
     <svg width="150" height="64" viewBox="0 0 150 64" aria-hidden="true">
       <line x1="8" y1="56" x2="142" y2="12" stroke="#39424c" stroke-width="12" stroke-linecap="round"/>
       <line x1="8" y1="56" x2="142" y2="12" stroke="#4a5560" stroke-width="1" stroke-dasharray="4 6"/>
@@ -69,8 +77,7 @@
       <g transform="translate(118,26)">
         <circle r="17" fill="#2b3138" stroke="#fff" stroke-width="1.5"/>
         <rect x="-6.5" y="-13" width="13" height="26" rx="5" fill="#161a1e" stroke="#8a949e"/>
-        <circle cy="-8" r="3.6" fill="#3c444d"/>
-        <circle cy="0" r="3.6" fill="#3c444d"/>
+        <circle cy="-8" r="3.6" fill="#3c444d"/><circle cy="0" r="3.6" fill="#3c444d"/>
         <circle cy="8" r="3.6" fill="#5bdd6e"/>
       </g>
     </svg>
@@ -81,40 +88,39 @@
   <div class="card">
     <h2>Flash the receiver right in your browser</h2>
     <p>Connect the <b>ESP32-C5</b> to your computer via USB and click
-       <i>Connect &amp; Flash</i> — the browser does the rest. No install, no drivers,
-       no configuration: the receiver derives its ID automatically from its own hardware
-       address and shows up over Bluetooth in the V2X2MAP app right after it reboots.</p>
+       <i>Connect &amp; Flash</i>. No install, no drivers: the receiver derives its ID
+       automatically from its own hardware address and shows up over Bluetooth in the
+       V2X2MAP app right after it reboots.</p>
+
     <div class="flashrow">
-      <esp-web-install-button manifest="manifest.json">
-        <button slot="activate" style="background:var(--accent); color:#fff; border:0;
-                border-radius:10px; padding:12px 22px; font-size:16px; font-weight:600; cursor:pointer;">
-          🔌 Connect &amp; Flash
-        </button>
-        <span slot="unsupported" class="hint">⚠️ This browser doesn’t support Web&nbsp;Serial.
-          Please use <b>Google Chrome</b> or <b>Microsoft Edge</b> on a computer —
-          or grab the <a href="https://github.com/pit711/v2x2map/releases/latest">desktop flasher</a>.</span>
-        <span slot="not-allowed" class="hint">⚠️ Serial-port access was blocked (HTTPS required).</span>
-      </esp-web-install-button>
-      <span class="badge">Firmware v0.2.4</span>
+      <button class="primary" id="flashBtn">🔌 Connect &amp; Flash</button>
+      <span class="badge" id="chipBadge">Firmware v0.2.4 · ESP32-C5</span>
     </div>
 
-    <div class="tip">
-      <b>💡 Important for the ESP32-C5:</b> its native USB can’t always be reset from
-      the browser, so put it into <b>boot mode by hand</b> when you flash:
+    <label class="chk"><input type="checkbox" id="noReset">
+      My board is already in <b>bootloader mode</b> — don’t auto-reset it</label>
+
+    <div class="status" id="status"></div>
+    <div class="bar" id="bar"><i></i></div>
+
+    <div class="tip" id="manual">
+      <b>⚠️ Couldn’t start automatically — put the board into bootloader mode by hand:</b>
       <ol>
-        <li>Click <b>Connect &amp; Flash</b> and select the serial port</li>
-        <li><b>Hold down the BOOT button</b> on the receiver</li>
-        <li>Click <b>Install</b> (keep BOOT held), then release BOOT once flashing starts</li>
+        <li><b>Seeed XIAO ESP32-C5:</b> hold <b>BOOT (B)</b>, tap <b>RESET (R)</b> once,
+            then release BOOT</li>
+        <li>Tick “<b>already in bootloader mode</b>” above</li>
+        <li>Click <b>Connect &amp; Flash</b> again and re-select the same port</li>
       </ol>
-      Board without a BOOT button, or still failing? Use the
-      <a href="https://github.com/pit711/v2x2map/releases/latest">desktop flasher</a> —
-      it resets the C5 automatically.
+      Still no luck? The <a href="https://github.com/pit711/v2x2map/releases/latest">desktop
+      flasher (macOS/Windows)</a> resets the C5 automatically — use that instead.
     </div>
+
+    <pre class="log" id="log" hidden></pre>
 
     <div class="browsers">
-      Works in Chrome, Edge &amp; Opera on a computer (Web Serial). Safari, Firefox and
-      mobile devices aren’t supported — use the
-      <a href="https://github.com/pit711/v2x2map/releases/latest">desktop flasher (macOS/Windows)</a> there.
+      Works in Chrome, Edge &amp; Opera on a computer (Web Serial). Safari, Firefox and mobile
+      devices aren’t supported — use the
+      <a href="https://github.com/pit711/v2x2map/releases/latest">desktop flasher</a> there.
     </div>
   </div>
 
@@ -122,9 +128,8 @@
     <h2>How it works</h2>
     <ol>
       <li>Plug the ESP32-C5 receiver in with a <b>USB cable</b></li>
-      <li>Click <b>Connect &amp; Flash</b> and pick the serial port in the browser dialog
-          (e.g. “USB JTAG/serial debug unit”)</li>
-      <li>Confirm <b>Install</b> — flashing takes about a minute</li>
+      <li>Click <b>Connect &amp; Flash</b> and pick the serial port (e.g. “USB JTAG/serial debug unit”)</li>
+      <li>Flashing runs automatically — takes about a minute</li>
       <li>Done! The receiver reboots → open the V2X2MAP app on your phone</li>
     </ol>
   </div>
@@ -133,7 +138,88 @@
 <footer>
   <a href="https://v2x2map.com">v2x2map.com</a> ·
   <a href="https://github.com/pit711/v2x2map">GitHub</a> ·
-  Open source — firmware and flasher in the repository
+  Open source — firmware and flasher in the repository. Powered by esptool-js.
 </footer>
+
+<script type="module">
+import { ESPLoader, Transport } from 'https://cdn.jsdelivr.net/npm/esptool-js@0.6.0/+esm';
+
+const PARTS = [
+  ['firmware/bootloader.bin',       0x2000],
+  ['firmware/partition-table.bin',  0x8000],
+  ['firmware/ota_data_initial.bin', 0x1e000],
+  ['firmware/firmware.bin',         0x20000],
+];
+
+const $ = id => document.getElementById(id);
+const btn = $('flashBtn'), statusEl = $('status'), bar = $('bar'), barFill = bar.firstElementChild,
+      logEl = $('log'), manual = $('manual'), noResetChk = $('noReset'), chipBadge = $('chipBadge');
+
+function status(msg, kind){ statusEl.textContent = msg; statusEl.className = 'status' + (kind ? ' '+kind : ''); }
+function logline(s){ logEl.hidden = false; logEl.textContent += s; logEl.scrollTop = logEl.scrollHeight; }
+const term = { clean(){ logEl.textContent=''; }, writeLine(d){ logline(d+'\n'); }, write(d){ logline(d); } };
+
+async function loadBin(url){
+  const buf = new Uint8Array(await (await fetch(url, {cache:'no-store'})).arrayBuffer());
+  let s = ''; const CH = 0x8000;
+  for (let i=0; i<buf.length; i+=CH) s += String.fromCharCode.apply(null, buf.subarray(i, i+CH));
+  return s;
+}
+
+if (!('serial' in navigator)) {
+  status('⚠️ This browser has no Web Serial. Use Chrome or Edge on a computer.', 'err');
+  btn.disabled = true;
+}
+
+let busy = false;
+btn.addEventListener('click', async () => {
+  if (busy) return;
+  busy = true; btn.disabled = true; manual.style.display='none';
+  logEl.hidden = true; logEl.textContent=''; bar.style.display='none'; barFill.style.width='0';
+  let transport;
+  try {
+    status('Select the serial port…');
+    const port = await navigator.serial.requestPort();
+    transport = new Transport(port, true);
+    const loader = new ESPLoader({ transport, baudrate: 921600, romBaudrate: 115200, terminal: term });
+
+    status(noResetChk.checked ? 'Connecting (no reset)…' : 'Connecting…');
+    const chip = await loader.main(noResetChk.checked ? 'no_reset' : 'default_reset');
+    chipBadge.textContent = 'Connected: ' + chip;
+    status('Connected to ' + chip + ' — loading firmware…');
+
+    const fileArray = [];
+    for (const [url, address] of PARTS) fileArray.push({ data: await loadBin(url), address });
+
+    bar.style.display='block';
+    status('Flashing… do not unplug the device');
+    await loader.writeFlash({
+      fileArray, flashSize:'keep', flashMode:'keep', flashFreq:'keep',
+      eraseAll:false, compress:true,
+      reportProgress:(idx, written, total) => {
+        const pct = Math.round(written/total*100);
+        barFill.style.width = pct + '%';
+        status('Writing ' + PARTS[idx][0].split('/').pop() + ' — ' + pct + '%');
+      },
+    });
+    status('Resetting…');
+    try { await loader.hardReset(); } catch(_) {}
+    barFill.style.width='100%';
+    status('✅ Done! The receiver reboots — open the V2X2MAP app on your phone.', 'ok');
+  } catch (err) {
+    console.error(err);
+    const msg = (err && err.message) ? err.message : String(err);
+    logline('\nERROR: ' + msg + '\n');
+    status('❌ ' + msg, 'err');
+    // connection/sync failures → show the manual bootloader steps
+    if (/connect|sync|initialize|timeout|failed to|no serial data/i.test(msg)) {
+      manual.style.display='block';
+    }
+  } finally {
+    try { if (transport) await transport.disconnect(); } catch(_) {}
+    busy = false; btn.disabled = false;
+  }
+});
+</script>
 </body>
 </html>
