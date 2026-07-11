@@ -194,8 +194,8 @@ btn.addEventListener('click', async () => {
     bar.style.display='block';
     status('Flashing… do not unplug the device');
     await loader.writeFlash({
-      fileArray, flashSize:'keep', flashMode:'keep', flashFreq:'keep',
-      eraseAll:false, compress:false,
+      fileArray, flashSize:'8MB', flashMode:'keep', flashFreq:'keep',
+      eraseAll:false, compress:true,
       reportProgress:(idx, written, total) => {
         const pct = Math.round(written/total*100);
         barFill.style.width = pct + '%';
