@@ -181,7 +181,7 @@ btn.addEventListener('click', async () => {
     status('Select the serial port…');
     const port = await navigator.serial.requestPort();
     transport = new Transport(port, true);
-    const loader = new ESPLoader({ transport, baudrate: 921600, romBaudrate: 115200, terminal: term });
+    const loader = new ESPLoader({ transport, baudrate: 115200, romBaudrate: 115200, terminal: term });
 
     status(noResetChk.checked ? 'Connecting (no reset)…' : 'Connecting…');
     const chip = await loader.main(noResetChk.checked ? 'no_reset' : 'default_reset');
