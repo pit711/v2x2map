@@ -160,10 +160,11 @@ function logline(s){ logEl.hidden = false; logEl.textContent += s; logEl.scrollT
 const term = { clean(){ logEl.textContent=''; }, writeLine(d){ logline(d+'\n'); }, write(d){ logline(d); } };
 
 async function loadBin(url){
-  const buf = new Uint8Array(await (await fetch(url, {cache:'no-store'})).arrayBuffer());
-  let s = ''; const CH = 0x8000;
-  for (let i=0; i<buf.length; i+=CH) s += String.fromCharCode.apply(null, buf.subarray(i, i+CH));
-  return s;
+  // esptool-js 0.6 expects Uint8Array. NEVER pass a binary string: pako would
+  // UTF-8-encode it (bytes >= 0x80 become two bytes), the stream then inflates
+  // to ~1.4x the declared size and the stub aborts with ESP_TOO_MUCH_DATA (201)
+  // at ~70% — reproduced and verified locally.
+  return new Uint8Array(await (await fetch(url, {cache:'no-store'})).arrayBuffer());
 }
 
 if (!('serial' in navigator)) {
@@ -194,8 +195,8 @@ btn.addEventListener('click', async () => {
     bar.style.display='block';
     status('Flashing… do not unplug the device');
     await loader.writeFlash({
-      fileArray, flashSize:'8MB', flashMode:'keep', flashFreq:'keep',
-      eraseAll:true, compress:true,
+      fileArray, flashSize:'keep', flashMode:'keep', flashFreq:'keep',
+      eraseAll:false, compress:true,
       reportProgress:(idx, written, total) => {
         const pct = Math.round(written/total*100);
         barFill.style.width = pct + '%';
