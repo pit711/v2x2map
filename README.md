@@ -44,7 +44,7 @@ The board supports 5.9 GHz IEEE 802.11p out of the box; the firmware drives it a
 
 - **Amazon with external Antenna:** [Waveshare ESP32-C5-WROOM-1 dev board](https://amzn.to/4uDpwNa) *
 - **Amazon without external Antenna:** [Waveshare ESP32-C5-WROOM-1 dev board](https://amzn.to/43qIJ9h) *
-- **AliExpress:** [Waveshare Official Store](https://s.click.aliexpress.com/e/_c3pGqqLN) *
+- **AliExpress:** [Waveshare Official Store](https://s.click.aliexpress.com/e/_c3lTQYn5) *
 
 
 
