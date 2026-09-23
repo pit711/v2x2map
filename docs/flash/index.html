@@ -53,6 +53,10 @@
   a{color:var(--accent)}
   footer{max-width:760px; margin:0 auto; padding:0 20px 40px; font-size:13px; color:var(--muted)}
   label.chk{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted); margin-top:12px}
+  .iosnote{background:var(--line); border-left:4px solid var(--accent); border-radius:10px;
+           padding:10px 14px; margin:0 0 14px; line-height:1.45}
+  .iosonly{display:inline-block; background:#d32f2f; color:#fff; font-weight:800; font-size:22px;
+           letter-spacing:.06em; padding:6px 16px; border-radius:8px; margin:0}
 </style>
 </head>
 <body>
@@ -87,6 +91,8 @@
 <main>
   <div class="card">
     <h2>Flash the receiver right in your browser</h2>
+    <p class="iosnote">📱 <b>For the V2X2MAP iPhone app (iOS).</b> Using Android? The Android app has a
+       built-in flasher (USB-OTG) — please use that instead of this page.</p>
     <p>Connect the <b>ESP32-C5</b> to your computer via USB and click
        <i>Connect &amp; Flash</i>. No install, no drivers: the receiver derives its ID
        automatically from its own hardware address and shows up over Bluetooth in the
@@ -94,7 +100,8 @@
 
     <div class="flashrow">
       <button class="primary" id="flashBtn">🔌 Connect &amp; Flash</button>
-      <span class="badge" id="chipBadge">Firmware v0.2.4 · ESP32-C5</span>
+      <span class="iosonly" role="note">iOS ONLY!</span>
+      <span class="badge" id="chipBadge">Firmware v0.2.5 · ESP32-C5</span>
     </div>
 
     <label class="chk"><input type="checkbox" id="noReset">

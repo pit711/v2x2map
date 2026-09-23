@@ -1,6 +1,6 @@
 {
   "name": "V2X2MAP ITS-G5 Receiver",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "new_install_prompt_erase": false,
   "builds": [
     {
