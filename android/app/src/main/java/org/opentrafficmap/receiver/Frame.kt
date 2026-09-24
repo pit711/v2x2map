@@ -1,13 +1,16 @@
 package org.opentrafficmap.receiver
 
+import java.time.Instant
+
 /**
  * One ITS-G5 sniffer frame as it arrived from the ESP32-C5 over USB or BLE,
  * with whatever the lightweight [ItsG5Decoder] could pull out of the payload.
  */
 data class Frame(
     val seq: Long,
-    val sec: Long,
-    val usec: Long,
+    val receiverSec: Long,
+    val receiverUsec: Long,
+    val wallTime: Instant,
     val payload: ByteArray,
     val etherType: Int?,
     val msgType: ItsG5Decoder.MsgType,

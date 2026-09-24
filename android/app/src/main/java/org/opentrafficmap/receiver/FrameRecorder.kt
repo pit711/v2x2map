@@ -92,8 +92,8 @@ class FrameRecorder(private val context: Context) {
     private fun writePcapPacket(out: BufferedOutputStream, frame: Frame) {
         val len = frame.payload.size
         val hdr = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN)
-        hdr.putInt(frame.sec.toInt())   // ts_sec
-        hdr.putInt(frame.usec.toInt())  // ts_usec
+        hdr.putInt(frame.wallTime.epochSecond.toInt())   // ts_sec
+        hdr.putInt(frame.wallTime.nano)  // ts_usec
         hdr.putInt(len)                 // incl_len
         hdr.putInt(len)                 // orig_len
         out.write(hdr.array())
@@ -101,8 +101,7 @@ class FrameRecorder(private val context: Context) {
     }
 
     companion object {
-        // 0xa1b2c3d4 stored LE → bytes d4 c3 b2 a1 → Wireshark recognises native-endian pcap
-        private val PCAP_MAGIC     = 0xa1b2c3d4.toInt()
+        private val PCAP_MAGIC     = 0xA1B23C4D.toInt()
         private const val LINK_IEEE80211 = 105
     }
 }

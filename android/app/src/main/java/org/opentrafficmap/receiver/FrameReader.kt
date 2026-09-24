@@ -2,6 +2,7 @@ package org.opentrafficmap.receiver
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.time.Instant
 
 /**
  * Resync parser for the ESP-side wire format:
@@ -20,7 +21,7 @@ class FrameReader {
     private var seq = 0L
 
     /** Feed raw bytes from the serial port. Returns any complete frames found. */
-    fun feed(chunk: ByteArray, len: Int = chunk.size): List<Frame> {
+    fun feed(chunk: ByteArray, now: Instant, len: Int = chunk.size): List<Frame> {
         for (i in 0 until len) buf.addLast(chunk[i])
         val out = mutableListOf<Frame>()
         while (true) {
@@ -57,20 +58,21 @@ class FrameReader {
 
             val d = ItsG5Decoder.decodeFull(payload)
             out += Frame(
-                seq         = ++seq,
-                sec         = sec,
-                usec        = usec,
-                payload     = payload,
-                etherType   = d.etherType,
-                msgType     = d.msgType,
-                stationId   = d.stationId,
-                stationType = d.stationType,
-                latLon      = d.latLon,
-                headingDeg  = d.headingDeg,
-                speedMps    = d.speedMps,
-                spatPhase   = d.spatPhase,
-                denmCause   = d.denmCause,
-                secured     = d.secured,
+                seq             = ++seq,
+                receiverSec     = sec,
+                receiverUsec    = usec,
+                wallTime        = now,
+                payload         = payload,
+                etherType       = d.etherType,
+                msgType         = d.msgType,
+                stationId       = d.stationId,
+                stationType     = d.stationType,
+                latLon          = d.latLon,
+                headingDeg      = d.headingDeg,
+                speedMps        = d.speedMps,
+                spatPhase       = d.spatPhase,
+                denmCause       = d.denmCause,
+                secured         = d.secured,
             )
         }
     }
